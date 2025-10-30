@@ -106,7 +106,7 @@ const EmployeeTable = ({ employees, onEmployeeUpdate }: EmployeeTableProps) => {
       {employees.map((employee) => (
         <div
           key={employee.id}
-          className="flex items-center gap-3 p-3 bg-card rounded-lg border border-border hover:border-primary/50 transition-all"
+          className="flex items-center gap-3 p-2 bg-card rounded-lg border border-border hover:border-primary/50 transition-all"
         >
           <Avatar
             className="h-10 w-10 cursor-pointer"
