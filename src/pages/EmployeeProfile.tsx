@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/contexts/TenantContext';
 import { toast } from 'sonner';
@@ -33,11 +34,18 @@ interface Employee {
   email: string | null;
   status: string;
   image_url: string | null;
+  recurring_enabled: boolean;
 }
 
 interface ScheduledStatus {
   id: string;
   scheduled_date: string;
+  status_text: string;
+}
+
+interface RecurringStatus {
+  id: string;
+  day_of_week: number;
   status_text: string;
 }
 
@@ -59,6 +67,9 @@ const EmployeeProfile = () => {
   const [newScheduledDate, setNewScheduledDate] = useState<Date | undefined>(undefined);
   const [newScheduledStatus, setNewScheduledStatus] = useState('');
   const [showCustomStatusInput, setShowCustomStatusInput] = useState(false);
+  const [recurringStatuses, setRecurringStatuses] = useState<RecurringStatus[]>([]);
+  const [recurringEnabled, setRecurringEnabled] = useState(false);
+  const [editingRecurringDay, setEditingRecurringDay] = useState<{ [key: number]: string }>({});
 
   useEffect(() => {
     if (!tenantId) {
@@ -70,6 +81,7 @@ const EmployeeProfile = () => {
       loadEmployee();
       loadScheduledStatuses();
       loadPredefinedStatuses();
+      loadRecurringStatuses();
     }
   }, [id, tenantId, navigate]);
 
@@ -90,6 +102,7 @@ const EmployeeProfile = () => {
         phone: data.phone || '',
         email: data.email || '',
       });
+      setRecurringEnabled(data.recurring_enabled || false);
     } catch (error) {
       console.error('Error loading employee:', error);
       toast.error('Failed to load employee');
@@ -247,6 +260,77 @@ const EmployeeProfile = () => {
     } catch (error) {
       console.error('Error deleting scheduled status:', error);
       toast.error('Failed to remove scheduled status');
+    }
+  };
+
+  const loadRecurringStatuses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('recurring_statuses')
+        .select('*')
+        .eq('employee_id', id)
+        .eq('tenant_id', tenantId)
+        .order('day_of_week');
+
+      if (error) throw error;
+
+      setRecurringStatuses(data || []);
+    } catch (error) {
+      console.error('Error loading recurring statuses:', error);
+    }
+  };
+
+  const handleToggleRecurring = async (enabled: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('employees')
+        .update({ recurring_enabled: enabled })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setRecurringEnabled(enabled);
+      toast.success(enabled ? 'Recurring statuses enabled' : 'Recurring statuses disabled');
+    } catch (error) {
+      console.error('Error updating recurring enabled:', error);
+      toast.error('Failed to update setting');
+    }
+  };
+
+  const handleSaveRecurringStatus = async (dayOfWeek: number, statusText: string) => {
+    try {
+      const existing = recurringStatuses.find(rs => rs.day_of_week === dayOfWeek);
+      
+      if (statusText.trim() === '') {
+        // Delete if empty
+        if (existing) {
+          const { error } = await supabase
+            .from('recurring_statuses')
+            .delete()
+            .eq('id', existing.id);
+
+          if (error) throw error;
+        }
+      } else {
+        // Insert or update
+        const { error } = await supabase
+          .from('recurring_statuses')
+          .upsert({
+            id: existing?.id,
+            employee_id: id,
+            tenant_id: tenantId,
+            day_of_week: dayOfWeek,
+            status_text: statusText.trim(),
+          });
+
+        if (error) throw error;
+      }
+
+      loadRecurringStatuses();
+      setEditingRecurringDay({});
+    } catch (error) {
+      console.error('Error saving recurring status:', error);
+      toast.error('Failed to save recurring status');
     }
   };
 
@@ -523,6 +607,58 @@ const EmployeeProfile = () => {
                 No scheduled statuses
               </p>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Recurring Statuses</CardTitle>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="recurring-toggle" className="text-sm">
+                  {recurringEnabled ? 'Enabled' : 'Disabled'}
+                </Label>
+                <Switch
+                  id="recurring-toggle"
+                  checked={recurringEnabled}
+                  onCheckedChange={handleToggleRecurring}
+                />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, index) => {
+                const existing = recurringStatuses.find(rs => rs.day_of_week === index);
+                const isEditing = editingRecurringDay[index] !== undefined;
+                const currentValue = isEditing ? editingRecurringDay[index] : (existing?.status_text || '');
+
+                return (
+                  <div key={day} className="flex items-center gap-3 p-2 rounded-lg border border-border">
+                    <span className="font-medium w-24">{day}</span>
+                    <Input
+                      value={currentValue}
+                      onChange={(e) => setEditingRecurringDay({ ...editingRecurringDay, [index]: e.target.value })}
+                      onBlur={() => {
+                        if (isEditing) {
+                          handleSaveRecurringStatus(index, currentValue);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleSaveRecurringStatus(index, currentValue);
+                        }
+                      }}
+                      placeholder="No status set"
+                      className="flex-1"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-sm text-muted-foreground mt-4">
+              When enabled, these statuses will automatically apply based on the current day of the week.
+            </p>
           </CardContent>
         </Card>
       </div>

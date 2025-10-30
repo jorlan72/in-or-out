@@ -38,7 +38,10 @@ const Index = () => {
 
     setIsLoading(true);
     try {
-      // First, check and apply scheduled statuses for today
+      // First, apply recurring statuses based on day of week
+      await applyRecurringStatuses();
+      
+      // Then, check and apply scheduled statuses for today (these override recurring)
       await applyScheduledStatuses();
 
       const { data, error } = await supabase
@@ -102,6 +105,46 @@ const Index = () => {
 
     } catch (error) {
       console.error('Error applying scheduled statuses:', error);
+    }
+  };
+
+  const applyRecurringStatuses = async () => {
+    if (!tenantId) return;
+
+    try {
+      const currentDayOfWeek = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+      // Get all employees with recurring enabled
+      const { data: employees, error: employeesError } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .eq('recurring_enabled', true);
+
+      if (employeesError) throw employeesError;
+      if (!employees || employees.length === 0) return;
+
+      // Get recurring statuses for today's day of week for these employees
+      const { data: recurringStatuses, error: recurringError } = await supabase
+        .from('recurring_statuses')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .eq('day_of_week', currentDayOfWeek)
+        .in('employee_id', employees.map(e => e.id));
+
+      if (recurringError) throw recurringError;
+      if (!recurringStatuses || recurringStatuses.length === 0) return;
+
+      // Update employee statuses based on recurring schedule
+      for (const recurring of recurringStatuses) {
+        await supabase
+          .from('employees')
+          .update({ status: recurring.status_text })
+          .eq('id', recurring.employee_id);
+      }
+
+    } catch (error) {
+      console.error('Error applying recurring statuses:', error);
     }
   };
 

@@ -22,6 +22,7 @@ export type Database = {
           image_url: string | null
           name: string
           phone: string | null
+          recurring_enabled: boolean | null
           status: string | null
           tenant_id: string
           updated_at: string | null
@@ -33,6 +34,7 @@ export type Database = {
           image_url?: string | null
           name: string
           phone?: string | null
+          recurring_enabled?: boolean | null
           status?: string | null
           tenant_id: string
           updated_at?: string | null
@@ -44,6 +46,7 @@ export type Database = {
           image_url?: string | null
           name?: string
           phone?: string | null
+          recurring_enabled?: boolean | null
           status?: string | null
           tenant_id?: string
           updated_at?: string | null
@@ -86,6 +89,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      recurring_statuses: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          employee_id: string
+          id: string
+          status_text: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          employee_id: string
+          id?: string
+          status_text: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          employee_id?: string
+          id?: string
+          status_text?: string
+          tenant_id?: string
+        }
+        Relationships: []
       }
       scheduled_statuses: {
         Row: {
