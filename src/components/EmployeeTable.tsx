@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { useTenant } from '@/contexts/TenantContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 interface Employee {
@@ -21,7 +21,7 @@ interface EmployeeTableProps {
 
 const EmployeeTable = ({ employees, onEmployeeUpdate }: EmployeeTableProps) => {
   const navigate = useNavigate();
-  const { tenantId } = useTenant();
+  const { user } = useAuth();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [predefinedStatuses, setPredefinedStatuses] = useState<string[]>([]);
@@ -29,16 +29,16 @@ const EmployeeTable = ({ employees, onEmployeeUpdate }: EmployeeTableProps) => {
 
   useEffect(() => {
     loadPredefinedStatuses();
-  }, [tenantId]);
+  }, [user]);
 
   const loadPredefinedStatuses = async () => {
-    if (!tenantId) return;
+    if (!user) return;
 
     try {
       const { data, error } = await supabase
         .from('predefined_statuses')
         .select('status_text')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', user.id)
         .order('created_at');
 
       if (error) throw error;
