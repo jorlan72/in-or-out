@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
-import { useTenant } from '@/contexts/TenantContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { ArrowLeft, Plus, Trash2, Loader2 } from 'lucide-react';
 
@@ -15,30 +15,30 @@ interface PredefinedStatus {
 
 const Options = () => {
   const navigate = useNavigate();
-  const { tenantId, tenantName } = useTenant();
+  const { user, companyName } = useAuth();
   const [statuses, setStatuses] = useState<PredefinedStatus[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [newStatus, setNewStatus] = useState('');
   const [isAdding, setIsAdding] = useState(false);
 
   useEffect(() => {
-    if (!tenantId) {
+    if (!user) {
       navigate('/auth');
       return;
     }
 
     loadStatuses();
-  }, [tenantId, navigate]);
+  }, [user, navigate]);
 
   const loadStatuses = async () => {
-    if (!tenantId) return;
+    if (!user) return;
 
     setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('predefined_statuses')
         .select('*')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', user.id)
         .order('created_at');
 
       if (error) throw error;
@@ -58,14 +58,14 @@ const Options = () => {
   };
 
   const createDefaultStatuses = async () => {
-    if (!tenantId) return;
+    if (!user) return;
 
     try {
       const { data, error } = await supabase
         .from('predefined_statuses')
         .insert([
-          { tenant_id: tenantId, status_text: 'In' },
-          { tenant_id: tenantId, status_text: 'Out' },
+          { tenant_id: user.id, status_text: 'In' },
+          { tenant_id: user.id, status_text: 'Out' },
         ])
         .select();
 
@@ -80,13 +80,13 @@ const Options = () => {
   };
 
   const handleAddStatus = async () => {
-    if (!tenantId || !newStatus.trim()) return;
+    if (!user || !newStatus.trim()) return;
 
     setIsAdding(true);
     try {
       const { data, error } = await supabase
         .from('predefined_statuses')
-        .insert({ tenant_id: tenantId, status_text: newStatus.trim() })
+        .insert({ tenant_id: user.id, status_text: newStatus.trim() })
         .select()
         .single();
 
@@ -144,7 +144,7 @@ const Options = () => {
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-foreground">Options</h1>
-            <p className="text-sm text-muted-foreground">{tenantName}</p>
+            <p className="text-sm text-muted-foreground">{companyName}</p>
           </div>
         </div>
 

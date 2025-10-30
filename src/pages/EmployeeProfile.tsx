@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
-import { useTenant } from '@/contexts/TenantContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { ArrowLeft, Loader2, Upload, Trash2, Calendar as CalendarIcon, Plus, X } from 'lucide-react';
 import { format } from 'date-fns';
@@ -52,7 +52,7 @@ interface RecurringStatus {
 const EmployeeProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { tenantId } = useTenant();
+  const { user } = useAuth();
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -73,7 +73,7 @@ const EmployeeProfile = () => {
   const [showCustomRecurringInput, setShowCustomRecurringInput] = useState<{ [key: number]: boolean }>({});
 
   useEffect(() => {
-    if (!tenantId) {
+    if (!user) {
       navigate('/auth');
       return;
     }
@@ -84,7 +84,7 @@ const EmployeeProfile = () => {
       loadPredefinedStatuses();
       loadRecurringStatuses();
     }
-  }, [id, tenantId, navigate]);
+  }, [id, user, navigate]);
 
   const loadEmployee = async () => {
     try {
@@ -92,7 +92,7 @@ const EmployeeProfile = () => {
         .from('employees')
         .select('*')
         .eq('id', id)
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', user?.id)
         .single();
 
       if (error) throw error;
@@ -155,7 +155,7 @@ const EmployeeProfile = () => {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${id}-${Date.now()}.${fileExt}`;
-      const filePath = `${tenantId}/${fileName}`;
+      const filePath = `${user?.id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('employee-images')
@@ -190,7 +190,7 @@ const EmployeeProfile = () => {
         .from('scheduled_statuses')
         .select('*')
         .eq('employee_id', id)
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', user?.id)
         .order('scheduled_date', { ascending: true });
 
       if (error) throw error;
@@ -202,13 +202,13 @@ const EmployeeProfile = () => {
   };
 
   const loadPredefinedStatuses = async () => {
-    if (!tenantId) return;
+    if (!user) return;
 
     try {
       const { data, error } = await supabase
         .from('predefined_statuses')
         .select('status_text')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', user.id)
         .order('created_at');
 
       if (error) throw error;
@@ -230,7 +230,7 @@ const EmployeeProfile = () => {
         .from('scheduled_statuses')
         .insert({
           employee_id: id,
-          tenant_id: tenantId,
+          tenant_id: user?.id,
           scheduled_date: format(newScheduledDate, 'yyyy-MM-dd'),
           status_text: newScheduledStatus.trim(),
         });
@@ -270,7 +270,7 @@ const EmployeeProfile = () => {
         .from('recurring_statuses')
         .select('*')
         .eq('employee_id', id)
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', user?.id)
         .order('day_of_week');
 
       if (error) throw error;
@@ -319,7 +319,7 @@ const EmployeeProfile = () => {
           .upsert({
             id: existing?.id,
             employee_id: id,
-            tenant_id: tenantId,
+            tenant_id: user?.id,
             day_of_week: dayOfWeek,
             status_text: statusText.trim(),
           });

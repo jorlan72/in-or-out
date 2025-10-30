@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { useTenant } from '@/contexts/TenantContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { LogOut, Loader2, Settings } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import EmployeeTable from '@/components/EmployeeTable';
 import AddEmployeeDialog from '@/components/AddEmployeeDialog';
 
@@ -20,21 +21,23 @@ interface Employee {
 
 const Index = () => {
   const navigate = useNavigate();
-  const { tenantId, tenantName, clearTenant } = useTenant();
+  const { user, companyName, signOut, loading } = useAuth();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!tenantId) {
+    if (!loading && !user) {
       navigate('/auth');
       return;
     }
 
-    loadEmployees();
-  }, [tenantId, navigate]);
+    if (user) {
+      loadEmployees();
+    }
+  }, [user, loading, navigate]);
 
   const loadEmployees = async () => {
-    if (!tenantId) return;
+    if (!user) return;
 
     setIsLoading(true);
     try {
@@ -47,7 +50,7 @@ const Index = () => {
       const { data, error } = await supabase
         .from('employees')
         .select('*')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', user.id)
         .order('name');
 
       if (error) throw error;
@@ -62,7 +65,7 @@ const Index = () => {
   };
 
   const applyScheduledStatuses = async () => {
-    if (!tenantId) return;
+    if (!user) return;
 
     try {
       const today = new Date().toISOString().split('T')[0];
@@ -71,7 +74,7 @@ const Index = () => {
       const { data: scheduledStatuses, error: fetchError } = await supabase
         .from('scheduled_statuses')
         .select('*')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', user.id)
         .lte('scheduled_date', today);
 
       if (fetchError) throw fetchError;
@@ -100,7 +103,7 @@ const Index = () => {
       await supabase
         .from('scheduled_statuses')
         .delete()
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', user.id)
         .lte('scheduled_date', today);
 
     } catch (error) {
@@ -109,7 +112,7 @@ const Index = () => {
   };
 
   const applyRecurringStatuses = async () => {
-    if (!tenantId) return;
+    if (!user) return;
 
     try {
       const currentDayOfWeek = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
@@ -118,7 +121,7 @@ const Index = () => {
       const { data: employees, error: employeesError } = await supabase
         .from('employees')
         .select('id')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', user.id)
         .eq('recurring_enabled', true);
 
       if (employeesError) throw employeesError;
@@ -128,7 +131,7 @@ const Index = () => {
       const { data: recurringStatuses, error: recurringError } = await supabase
         .from('recurring_statuses')
         .select('*')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', user.id)
         .eq('day_of_week', currentDayOfWeek)
         .in('employee_id', employees.map(e => e.id));
 
@@ -148,13 +151,13 @@ const Index = () => {
     }
   };
 
-  const handleLogout = () => {
-    clearTenant();
+  const handleLogout = async () => {
+    await signOut();
     navigate('/auth');
     toast.success('Signed out successfully');
   };
 
-  if (isLoading) {
+  if (loading || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -168,17 +171,20 @@ const Index = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">InOrOut</h1>
-            <p className="text-sm text-muted-foreground">{tenantName}</p>
+            <p className="text-sm text-muted-foreground">{companyName}</p>
           </div>
-          <Button variant="ghost" onClick={handleLogout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Sign Out
-          </Button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="ghost" onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign Out
+            </Button>
+          </div>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Team Status</CardTitle>
+            <CardTitle>{companyName} - Team Status</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {employees.length === 0 ? (
@@ -192,7 +198,7 @@ const Index = () => {
         </Card>
 
         <div className="flex gap-2">
-          <AddEmployeeDialog tenantId={tenantId || ''} onEmployeeAdded={loadEmployees} />
+          <AddEmployeeDialog tenantId={user?.id || ''} onEmployeeAdded={loadEmployees} />
           <Button variant="outline" onClick={() => navigate('/options')}>
             <Settings className="mr-2 h-4 w-4" />
             Options
