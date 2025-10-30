@@ -183,9 +183,6 @@ const Index = () => {
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>{companyName} - Team Status</CardTitle>
-          </CardHeader>
           <CardContent className="space-y-4">
             {employees.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
