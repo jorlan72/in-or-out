@@ -106,7 +106,7 @@ const EmployeeTable = ({ employees, onEmployeeUpdate }: EmployeeTableProps) => {
       {employees.map((employee) => (
         <div
           key={employee.id}
-          className="flex items-center gap-3 p-2 bg-card rounded-lg border border-border hover:border-primary/50 transition-all"
+          className="grid grid-cols-[auto_auto_1fr] items-center gap-3 p-2 bg-card rounded-lg border border-border hover:border-primary/50 transition-all"
         >
           <Avatar
             className="h-10 w-10 cursor-pointer"
@@ -118,16 +118,15 @@ const EmployeeTable = ({ employees, onEmployeeUpdate }: EmployeeTableProps) => {
             </AvatarFallback>
           </Avatar>
           
-          <div className="flex-1 grid grid-cols-[min-content_1fr] gap-3">
-            <button
-              onClick={() => navigate(`/employee/${employee.id}`)}
-              className="text-left font-medium text-foreground hover:text-primary transition-colors"
-            >
-              {employee.name}
-            </button>
-            
-            {editingId === employee.id ? (
-              <div className="flex gap-2">
+          <button
+            onClick={() => navigate(`/employee/${employee.id}`)}
+            className="text-left font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap"
+          >
+            {employee.name}
+          </button>
+          
+          {editingId === employee.id ? (
+            <div className="flex gap-2 min-w-0">
                 {showCustomInput ? (
                   <Input
                     value={editValue}
@@ -162,16 +161,15 @@ const EmployeeTable = ({ employees, onEmployeeUpdate }: EmployeeTableProps) => {
                 >
                   {showCustomInput ? '☰' : '✎'}
                 </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => handleStartEdit(employee)}
-                className="text-left text-muted-foreground hover:text-foreground transition-colors px-3 py-1 rounded hover:bg-accent"
-              >
-                {employee.status}
-              </button>
-            )}
-          </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => handleStartEdit(employee)}
+              className="text-left text-muted-foreground hover:text-foreground transition-colors px-3 py-1 rounded hover:bg-accent min-w-0"
+            >
+              {employee.status}
+            </button>
+          )}
         </div>
       ))}
     </div>
