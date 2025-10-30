@@ -55,11 +55,12 @@ const EmployeeTable = ({ employees, onEmployeeUpdate }: EmployeeTableProps) => {
     setShowCustomInput(false); // Always start with dropdown
   };
 
-  const handleSaveStatus = async (employeeId: string) => {
+  const handleSaveStatus = async (employeeId: string, statusValue?: string) => {
+    const valueToSave = statusValue || editValue;
     try {
       const { error } = await supabase
         .from('employees')
-        .update({ status: editValue })
+        .update({ status: valueToSave })
         .eq('id', employeeId);
 
       if (error) throw error;
@@ -79,8 +80,7 @@ const EmployeeTable = ({ employees, onEmployeeUpdate }: EmployeeTableProps) => {
       setShowCustomInput(true);
       setEditValue('');
     } else {
-      setEditValue(value);
-      await handleSaveStatus(employeeId);
+      await handleSaveStatus(employeeId, value);
     }
   };
 
@@ -127,34 +127,42 @@ const EmployeeTable = ({ employees, onEmployeeUpdate }: EmployeeTableProps) => {
             </button>
             
             {editingId === employee.id ? (
-              showCustomInput ? (
-                <Input
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  onBlur={() => handleSaveStatus(employee.id)}
-                  onKeyDown={(e) => handleKeyDown(e, employee.id)}
-                  autoFocus
-                  className="h-8"
-                  placeholder="Enter custom status"
-                />
-              ) : (
-                <Select
-                  value={predefinedStatuses.includes(editValue) ? editValue : '__placeholder__'}
-                  onValueChange={(value) => handleSelectChange(value, employee.id)}
+              <div className="flex gap-2">
+                {showCustomInput ? (
+                  <Input
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={() => handleSaveStatus(employee.id)}
+                    onKeyDown={(e) => handleKeyDown(e, employee.id)}
+                    autoFocus
+                    className="h-8 flex-1"
+                    placeholder="Enter custom status"
+                  />
+                ) : (
+                  <Select
+                    value={predefinedStatuses.includes(editValue) ? editValue : '__placeholder__'}
+                    onValueChange={(value) => handleSelectChange(value, employee.id)}
+                  >
+                    <SelectTrigger className="h-8 flex-1">
+                      <SelectValue placeholder={!predefinedStatuses.includes(editValue) ? editValue : 'Select status'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {predefinedStatuses.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="__custom__">Custom...</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+                <button
+                  onClick={() => setShowCustomInput(!showCustomInput)}
+                  className="text-xs px-2 py-1 h-8 rounded bg-secondary text-secondary-foreground hover:bg-secondary/80"
                 >
-                  <SelectTrigger className="h-8">
-                    <SelectValue placeholder={!predefinedStatuses.includes(editValue) ? editValue : 'Select status'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {predefinedStatuses.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {status}
-                      </SelectItem>
-                    ))}
-                    <SelectItem value="__custom__">Custom...</SelectItem>
-                  </SelectContent>
-                </Select>
-              )
+                  {showCustomInput ? '☰' : '✎'}
+                </button>
+              </div>
             ) : (
               <button
                 onClick={() => handleStartEdit(employee)}
