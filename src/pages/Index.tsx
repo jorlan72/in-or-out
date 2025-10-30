@@ -51,7 +51,7 @@ const Index = () => {
         .from('employees')
         .select('*')
         .eq('tenant_id', user.id)
-        .order('name');
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
 
