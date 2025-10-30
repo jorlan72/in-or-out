@@ -58,6 +58,7 @@ const EmployeeProfile = () => {
   const [predefinedStatuses, setPredefinedStatuses] = useState<string[]>([]);
   const [newScheduledDate, setNewScheduledDate] = useState<Date | undefined>(undefined);
   const [newScheduledStatus, setNewScheduledStatus] = useState('');
+  const [showCustomStatusInput, setShowCustomStatusInput] = useState(false);
 
   useEffect(() => {
     if (!tenantId) {
@@ -445,18 +446,46 @@ const EmployeeProfile = () => {
                   </PopoverContent>
                 </Popover>
 
-                <Select value={newScheduledStatus} onValueChange={setNewScheduledStatus}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {predefinedStatuses.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {status}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {showCustomStatusInput ? (
+                  <Input
+                    value={newScheduledStatus}
+                    onChange={(e) => setNewScheduledStatus(e.target.value)}
+                    placeholder="Enter custom status"
+                    className="flex-1"
+                  />
+                ) : (
+                  <Select 
+                    value={predefinedStatuses.includes(newScheduledStatus) ? newScheduledStatus : '__placeholder__'} 
+                    onValueChange={(value) => {
+                      if (value === '__custom__') {
+                        setShowCustomStatusInput(true);
+                        setNewScheduledStatus('');
+                      } else {
+                        setNewScheduledStatus(value);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder={!predefinedStatuses.includes(newScheduledStatus) && newScheduledStatus ? newScheduledStatus : 'Select status'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {predefinedStatuses.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="__custom__">Custom...</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+
+                <Button
+                  onClick={() => setShowCustomStatusInput(!showCustomStatusInput)}
+                  variant="secondary"
+                  size="icon"
+                >
+                  {showCustomStatusInput ? '☰' : '✎'}
+                </Button>
 
                 <Button onClick={handleAddScheduledStatus} size="icon">
                   <Plus className="h-4 w-4" />
