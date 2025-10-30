@@ -629,11 +629,19 @@ const EmployeeProfile = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, index) => {
-                const existing = recurringStatuses.find(rs => rs.day_of_week === index);
-                const isEditing = editingRecurringDay[index] !== undefined;
-                const currentValue = isEditing ? editingRecurringDay[index] : (existing?.status_text || '');
-                const showCustom = showCustomRecurringInput[index] || false;
+              {[
+                { day: 'Monday', dayOfWeek: 1 },
+                { day: 'Tuesday', dayOfWeek: 2 },
+                { day: 'Wednesday', dayOfWeek: 3 },
+                { day: 'Thursday', dayOfWeek: 4 },
+                { day: 'Friday', dayOfWeek: 5 },
+                { day: 'Saturday', dayOfWeek: 6 },
+                { day: 'Sunday', dayOfWeek: 0 },
+              ].map(({ day, dayOfWeek }) => {
+                const existing = recurringStatuses.find(rs => rs.day_of_week === dayOfWeek);
+                const isEditing = editingRecurringDay[dayOfWeek] !== undefined;
+                const currentValue = isEditing ? editingRecurringDay[dayOfWeek] : (existing?.status_text || '');
+                const showCustom = showCustomRecurringInput[dayOfWeek] || false;
 
                 return (
                   <div key={day} className="flex items-center gap-2 p-2 rounded-lg border border-border">
@@ -642,15 +650,15 @@ const EmployeeProfile = () => {
                     {showCustom ? (
                       <Input
                         value={currentValue}
-                        onChange={(e) => setEditingRecurringDay({ ...editingRecurringDay, [index]: e.target.value })}
+                        onChange={(e) => setEditingRecurringDay({ ...editingRecurringDay, [dayOfWeek]: e.target.value })}
                         onBlur={() => {
                           if (isEditing) {
-                            handleSaveRecurringStatus(index, currentValue);
+                            handleSaveRecurringStatus(dayOfWeek, currentValue);
                           }
                         }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
-                            handleSaveRecurringStatus(index, currentValue);
+                            handleSaveRecurringStatus(dayOfWeek, currentValue);
                           }
                         }}
                         placeholder="Enter custom status"
@@ -661,10 +669,10 @@ const EmployeeProfile = () => {
                         value={predefinedStatuses.includes(currentValue) ? currentValue : '__placeholder__'}
                         onValueChange={(value) => {
                           if (value === '__custom__') {
-                            setShowCustomRecurringInput({ ...showCustomRecurringInput, [index]: true });
-                            setEditingRecurringDay({ ...editingRecurringDay, [index]: '' });
+                            setShowCustomRecurringInput({ ...showCustomRecurringInput, [dayOfWeek]: true });
+                            setEditingRecurringDay({ ...editingRecurringDay, [dayOfWeek]: '' });
                           } else {
-                            handleSaveRecurringStatus(index, value);
+                            handleSaveRecurringStatus(dayOfWeek, value);
                           }
                         }}
                       >
@@ -683,7 +691,7 @@ const EmployeeProfile = () => {
                     )}
 
                     <Button
-                      onClick={() => setShowCustomRecurringInput({ ...showCustomRecurringInput, [index]: !showCustom })}
+                      onClick={() => setShowCustomRecurringInput({ ...showCustomRecurringInput, [dayOfWeek]: !showCustom })}
                       variant="secondary"
                       size="icon"
                     >
