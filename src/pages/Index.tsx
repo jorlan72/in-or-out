@@ -38,6 +38,9 @@ const Index = () => {
 
     setIsLoading(true);
     try {
+      // First, check and apply scheduled statuses for today
+      await applyScheduledStatuses();
+
       const { data, error } = await supabase
         .from('employees')
         .select('*')
@@ -52,6 +55,53 @@ const Index = () => {
       toast.error('Failed to load employees');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const applyScheduledStatuses = async () => {
+    if (!tenantId) return;
+
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      // Get all scheduled statuses for today or earlier
+      const { data: scheduledStatuses, error: fetchError } = await supabase
+        .from('scheduled_statuses')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .lte('scheduled_date', today);
+
+      if (fetchError) throw fetchError;
+
+      if (!scheduledStatuses || scheduledStatuses.length === 0) return;
+
+      // Group by employee_id and get the most recent scheduled status for each
+      const statusesByEmployee = scheduledStatuses.reduce((acc, status) => {
+        const existing = acc[status.employee_id];
+        if (!existing || status.scheduled_date > existing.scheduled_date) {
+          acc[status.employee_id] = status;
+        }
+        return acc;
+      }, {} as Record<string, typeof scheduledStatuses[0]>);
+
+      // Update employee statuses
+      for (const employeeId in statusesByEmployee) {
+        const status = statusesByEmployee[employeeId];
+        await supabase
+          .from('employees')
+          .update({ status: status.status_text })
+          .eq('id', employeeId);
+      }
+
+      // Delete all past scheduled statuses (including today)
+      await supabase
+        .from('scheduled_statuses')
+        .delete()
+        .eq('tenant_id', tenantId)
+        .lte('scheduled_date', today);
+
+    } catch (error) {
+      console.error('Error applying scheduled statuses:', error);
     }
   };
 

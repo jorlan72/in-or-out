@@ -5,10 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/contexts/TenantContext';
 import { toast } from 'sonner';
-import { ArrowLeft, Loader2, Upload, Trash2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Upload, Trash2, Calendar as CalendarIcon, Plus, X } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +35,12 @@ interface Employee {
   image_url: string | null;
 }
 
+interface ScheduledStatus {
+  id: string;
+  scheduled_date: string;
+  status_text: string;
+}
+
 const EmployeeProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -43,6 +54,10 @@ const EmployeeProfile = () => {
     phone: '',
     email: '',
   });
+  const [scheduledStatuses, setScheduledStatuses] = useState<ScheduledStatus[]>([]);
+  const [predefinedStatuses, setPredefinedStatuses] = useState<string[]>([]);
+  const [newScheduledDate, setNewScheduledDate] = useState<Date | undefined>(undefined);
+  const [newScheduledStatus, setNewScheduledStatus] = useState('');
 
   useEffect(() => {
     if (!tenantId) {
@@ -52,6 +67,8 @@ const EmployeeProfile = () => {
 
     if (id) {
       loadEmployee();
+      loadScheduledStatuses();
+      loadPredefinedStatuses();
     }
   }, [id, tenantId, navigate]);
 
@@ -149,6 +166,86 @@ const EmployeeProfile = () => {
       toast.error('Failed to upload image');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const loadScheduledStatuses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('scheduled_statuses')
+        .select('*')
+        .eq('employee_id', id)
+        .eq('tenant_id', tenantId)
+        .order('scheduled_date', { ascending: true });
+
+      if (error) throw error;
+
+      setScheduledStatuses(data || []);
+    } catch (error) {
+      console.error('Error loading scheduled statuses:', error);
+    }
+  };
+
+  const loadPredefinedStatuses = async () => {
+    if (!tenantId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('predefined_statuses')
+        .select('status_text')
+        .eq('tenant_id', tenantId)
+        .order('created_at');
+
+      if (error) throw error;
+
+      setPredefinedStatuses(data?.map(s => s.status_text) || []);
+    } catch (error) {
+      console.error('Error loading predefined statuses:', error);
+    }
+  };
+
+  const handleAddScheduledStatus = async () => {
+    if (!newScheduledDate || !newScheduledStatus.trim()) {
+      toast.error('Please select a date and enter a status');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('scheduled_statuses')
+        .insert({
+          employee_id: id,
+          tenant_id: tenantId,
+          scheduled_date: format(newScheduledDate, 'yyyy-MM-dd'),
+          status_text: newScheduledStatus.trim(),
+        });
+
+      if (error) throw error;
+
+      toast.success('Scheduled status added');
+      setNewScheduledDate(undefined);
+      setNewScheduledStatus('');
+      loadScheduledStatuses();
+    } catch (error) {
+      console.error('Error adding scheduled status:', error);
+      toast.error('Failed to add scheduled status');
+    }
+  };
+
+  const handleDeleteScheduledStatus = async (statusId: string) => {
+    try {
+      const { error } = await supabase
+        .from('scheduled_statuses')
+        .delete()
+        .eq('id', statusId);
+
+      if (error) throw error;
+
+      toast.success('Scheduled status removed');
+      loadScheduledStatuses();
+    } catch (error) {
+      console.error('Error deleting scheduled status:', error);
+      toast.error('Failed to remove scheduled status');
     }
   };
 
@@ -313,6 +410,90 @@ const EmployeeProfile = () => {
                 </AlertDialogContent>
               </AlertDialog>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Scheduled Statuses</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "flex-1 justify-start text-left font-normal",
+                        !newScheduledDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {newScheduledDate ? format(newScheduledDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={newScheduledDate}
+                      onSelect={setNewScheduledDate}
+                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                <Select value={newScheduledStatus} onValueChange={setNewScheduledStatus}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {predefinedStatuses.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {status}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Button onClick={handleAddScheduledStatus} size="icon">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {scheduledStatuses.length > 0 ? (
+              <div className="space-y-2">
+                {scheduledStatuses.map((scheduled) => (
+                  <div
+                    key={scheduled.id}
+                    className="flex items-center justify-between p-3 bg-card rounded-lg border border-border"
+                  >
+                    <div className="flex gap-3">
+                      <span className="font-medium">
+                        {format(new Date(scheduled.scheduled_date), 'MMM dd, yyyy')}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {scheduled.status_text}
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDeleteScheduledStatus(scheduled.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No scheduled statuses
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>

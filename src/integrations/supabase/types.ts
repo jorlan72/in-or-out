@@ -87,6 +87,33 @@ export type Database = {
           },
         ]
       }
+      scheduled_statuses: {
+        Row: {
+          created_at: string
+          employee_id: string
+          id: string
+          scheduled_date: string
+          status_text: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          id?: string
+          scheduled_date: string
+          status_text: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          id?: string
+          scheduled_date?: string
+          status_text?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       tenants: {
         Row: {
           created_at: string | null
