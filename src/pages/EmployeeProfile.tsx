@@ -70,6 +70,7 @@ const EmployeeProfile = () => {
   const [recurringStatuses, setRecurringStatuses] = useState<RecurringStatus[]>([]);
   const [recurringEnabled, setRecurringEnabled] = useState(false);
   const [editingRecurringDay, setEditingRecurringDay] = useState<{ [key: number]: string }>({});
+  const [showCustomRecurringInput, setShowCustomRecurringInput] = useState<{ [key: number]: boolean }>({});
 
   useEffect(() => {
     if (!tenantId) {
@@ -632,26 +633,62 @@ const EmployeeProfile = () => {
                 const existing = recurringStatuses.find(rs => rs.day_of_week === index);
                 const isEditing = editingRecurringDay[index] !== undefined;
                 const currentValue = isEditing ? editingRecurringDay[index] : (existing?.status_text || '');
+                const showCustom = showCustomRecurringInput[index] || false;
 
                 return (
-                  <div key={day} className="flex items-center gap-3 p-2 rounded-lg border border-border">
+                  <div key={day} className="flex items-center gap-2 p-2 rounded-lg border border-border">
                     <span className="font-medium w-24">{day}</span>
-                    <Input
-                      value={currentValue}
-                      onChange={(e) => setEditingRecurringDay({ ...editingRecurringDay, [index]: e.target.value })}
-                      onBlur={() => {
-                        if (isEditing) {
-                          handleSaveRecurringStatus(index, currentValue);
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleSaveRecurringStatus(index, currentValue);
-                        }
-                      }}
-                      placeholder="No status set"
-                      className="flex-1"
-                    />
+                    
+                    {showCustom ? (
+                      <Input
+                        value={currentValue}
+                        onChange={(e) => setEditingRecurringDay({ ...editingRecurringDay, [index]: e.target.value })}
+                        onBlur={() => {
+                          if (isEditing) {
+                            handleSaveRecurringStatus(index, currentValue);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleSaveRecurringStatus(index, currentValue);
+                          }
+                        }}
+                        placeholder="Enter custom status"
+                        className="flex-1"
+                      />
+                    ) : (
+                      <Select
+                        value={predefinedStatuses.includes(currentValue) ? currentValue : '__placeholder__'}
+                        onValueChange={(value) => {
+                          if (value === '__custom__') {
+                            setShowCustomRecurringInput({ ...showCustomRecurringInput, [index]: true });
+                            setEditingRecurringDay({ ...editingRecurringDay, [index]: '' });
+                          } else {
+                            handleSaveRecurringStatus(index, value);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder={currentValue || 'Select status'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {predefinedStatuses.map((status) => (
+                            <SelectItem key={status} value={status}>
+                              {status}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="__custom__">Custom...</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+
+                    <Button
+                      onClick={() => setShowCustomRecurringInput({ ...showCustomRecurringInput, [index]: !showCustom })}
+                      variant="secondary"
+                      size="icon"
+                    >
+                      {showCustom ? '☰' : '✎'}
+                    </Button>
                   </div>
                 );
               })}
