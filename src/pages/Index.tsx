@@ -201,6 +201,10 @@ const Index = () => {
             Options
           </Button>
         </div>
+
+        <p className="text-xs text-muted-foreground text-center pt-8">
+          Created by J. Lanesskog - 2025
+        </p>
       </div>
     </div>
   );
