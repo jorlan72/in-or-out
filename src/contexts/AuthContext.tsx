@@ -52,15 +52,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchCompanyName = async (userId: string) => {
     try {
-      // Try to get from user metadata first
-      const { data: userData } = await supabase.auth.getUser();
-      if (userData.user?.user_metadata?.company_name) {
-        setCompanyName(userData.user?.user_metadata.company_name);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('company_name')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        // Fallback to user metadata if profile query fails
+        const { data: userData } = await supabase.auth.getUser();
+        setCompanyName(userData.user?.user_metadata?.company_name || 'My Company');
         return;
       }
       
-      // Fallback to default
-      setCompanyName('My Company');
+      setCompanyName(data?.company_name || 'My Company');
     } catch (error) {
       console.error('Error fetching company name:', error);
       setCompanyName('My Company');

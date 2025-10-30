@@ -56,7 +56,7 @@ export type Database = {
             foreignKeyName: "employees_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
-            referencedRelation: "tenants"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -85,10 +85,31 @@ export type Database = {
             foreignKeyName: "predefined_statuses_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
-            referencedRelation: "tenants"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
+      }
+      profiles: {
+        Row: {
+          company_name: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          company_name: string
+          created_at?: string
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       recurring_statuses: {
         Row: {
@@ -115,7 +136,15 @@ export type Database = {
           status_text?: string
           tenant_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "recurring_statuses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       scheduled_statuses: {
         Row: {
@@ -142,7 +171,15 @@ export type Database = {
           status_text?: string
           tenant_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_statuses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tenants: {
         Row: {
