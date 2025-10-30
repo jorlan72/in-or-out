@@ -58,6 +58,35 @@ export type Database = {
           },
         ]
       }
+      predefined_statuses: {
+        Row: {
+          created_at: string
+          id: string
+          status_text: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          status_text: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          status_text?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "predefined_statuses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           created_at: string | null

@@ -7,6 +7,7 @@ import { TenantProvider } from "./contexts/TenantContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import EmployeeProfile from "./pages/EmployeeProfile";
+import Options from "./pages/Options";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/employee/:id" element={<EmployeeProfile />} />
+            <Route path="/options" element={<Options />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

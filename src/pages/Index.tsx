@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/contexts/TenantContext';
 import { toast } from 'sonner';
-import { LogOut, Loader2 } from 'lucide-react';
+import { LogOut, Loader2, Settings } from 'lucide-react';
 import EmployeeTable from '@/components/EmployeeTable';
 import AddEmployeeDialog from '@/components/AddEmployeeDialog';
 
@@ -98,7 +98,13 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        <AddEmployeeDialog tenantId={tenantId || ''} onEmployeeAdded={loadEmployees} />
+        <div className="flex gap-2">
+          <AddEmployeeDialog tenantId={tenantId || ''} onEmployeeAdded={loadEmployees} />
+          <Button variant="outline" onClick={() => navigate('/options')}>
+            <Settings className="mr-2 h-4 w-4" />
+            Options
+          </Button>
+        </div>
       </div>
     </div>
   );

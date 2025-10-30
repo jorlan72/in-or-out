@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
+import { useTenant } from '@/contexts/TenantContext';
 import { toast } from 'sonner';
 
 interface Employee {
@@ -19,12 +21,38 @@ interface EmployeeTableProps {
 
 const EmployeeTable = ({ employees, onEmployeeUpdate }: EmployeeTableProps) => {
   const navigate = useNavigate();
+  const { tenantId } = useTenant();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [predefinedStatuses, setPredefinedStatuses] = useState<string[]>([]);
+  const [showCustomInput, setShowCustomInput] = useState(false);
+
+  useEffect(() => {
+    loadPredefinedStatuses();
+  }, [tenantId]);
+
+  const loadPredefinedStatuses = async () => {
+    if (!tenantId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('predefined_statuses')
+        .select('status_text')
+        .eq('tenant_id', tenantId)
+        .order('created_at');
+
+      if (error) throw error;
+
+      setPredefinedStatuses(data?.map(s => s.status_text) || []);
+    } catch (error) {
+      console.error('Error loading predefined statuses:', error);
+    }
+  };
 
   const handleStartEdit = (employee: Employee) => {
     setEditingId(employee.id);
     setEditValue(employee.status);
+    setShowCustomInput(!predefinedStatuses.includes(employee.status));
   };
 
   const handleSaveStatus = async (employeeId: string) => {
@@ -37,11 +65,22 @@ const EmployeeTable = ({ employees, onEmployeeUpdate }: EmployeeTableProps) => {
       if (error) throw error;
 
       setEditingId(null);
+      setShowCustomInput(false);
       onEmployeeUpdate();
       toast.success('Status updated');
     } catch (error) {
       console.error('Error updating status:', error);
       toast.error('Failed to update status');
+    }
+  };
+
+  const handleSelectChange = (value: string, employeeId: string) => {
+    if (value === '__custom__') {
+      setShowCustomInput(true);
+      setEditValue('');
+    } else {
+      setEditValue(value);
+      handleSaveStatus(employeeId);
     }
   };
 
@@ -88,14 +127,34 @@ const EmployeeTable = ({ employees, onEmployeeUpdate }: EmployeeTableProps) => {
             </button>
             
             {editingId === employee.id ? (
-              <Input
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                onBlur={() => handleSaveStatus(employee.id)}
-                onKeyDown={(e) => handleKeyDown(e, employee.id)}
-                autoFocus
-                className="h-8"
-              />
+              showCustomInput ? (
+                <Input
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onBlur={() => handleSaveStatus(employee.id)}
+                  onKeyDown={(e) => handleKeyDown(e, employee.id)}
+                  autoFocus
+                  className="h-8"
+                  placeholder="Enter custom status"
+                />
+              ) : (
+                <Select
+                  value={editValue}
+                  onValueChange={(value) => handleSelectChange(value, employee.id)}
+                >
+                  <SelectTrigger className="h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {predefinedStatuses.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {status}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="__custom__">Custom...</SelectItem>
+                  </SelectContent>
+                </Select>
+              )
             ) : (
               <button
                 onClick={() => handleStartEdit(employee)}
