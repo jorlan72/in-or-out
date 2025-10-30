@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,7 +55,6 @@ const EmployeeProfile = () => {
   const { user } = useAuth();
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -113,33 +112,63 @@ const EmployeeProfile = () => {
     }
   };
 
-  const handleSave = async () => {
-    if (!formData.name.trim()) {
-      toast.error('Name is required');
-      return;
-    }
+  const debouncedUpdate = useCallback(
+    (() => {
+      let timeoutId: NodeJS.Timeout;
+      return (field: 'name' | 'phone' | 'email', value: string) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(async () => {
+          // Validate name
+          if (field === 'name' && !value.trim()) {
+            toast.error('Name cannot be empty');
+            return;
+          }
 
-    setIsSaving(true);
-    try {
-      const { error } = await supabase
-        .from('employees')
-        .update({
-          name: formData.name.trim(),
-          phone: formData.phone.trim() || null,
-          email: formData.email.trim() || null,
-        })
-        .eq('id', id);
+          // Validate name length
+          if (field === 'name' && value.trim().length > 100) {
+            toast.error('Name must be less than 100 characters');
+            return;
+          }
 
-      if (error) throw error;
+          // Validate email format
+          if (field === 'email' && value.trim()) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(value.trim())) {
+              toast.error('Invalid email address');
+              return;
+            }
+            if (value.trim().length > 255) {
+              toast.error('Email must be less than 255 characters');
+              return;
+            }
+          }
 
-      toast.success('Employee updated successfully');
-      loadEmployee();
-    } catch (error) {
-      console.error('Error updating employee:', error);
-      toast.error('Failed to update employee');
-    } finally {
-      setIsSaving(false);
-    }
+          // Validate phone length
+          if (field === 'phone' && value.trim().length > 50) {
+            toast.error('Phone number must be less than 50 characters');
+            return;
+          }
+
+          try {
+            const { error } = await supabase
+              .from('employees')
+              .update({ [field]: value.trim() || null })
+              .eq('id', id);
+
+            if (error) throw error;
+          } catch (error) {
+            console.error('Error updating employee:', error);
+            toast.error(`Failed to update ${field}`);
+          }
+        }, 1000);
+      };
+    })(),
+    [id]
+  );
+
+  const handleFieldChange = (field: 'name' | 'phone' | 'email', value: string) => {
+    setFormData({ ...formData, [field]: value });
+    debouncedUpdate(field, value);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -430,7 +459,7 @@ const EmployeeProfile = () => {
                 <Input
                   id="name"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) => handleFieldChange('name', e.target.value)}
                 />
               </div>
 
@@ -441,7 +470,7 @@ const EmployeeProfile = () => {
                   type="tel"
                   placeholder="(555) 123-4567"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) => handleFieldChange('phone', e.target.value)}
                 />
               </div>
 
@@ -452,25 +481,10 @@ const EmployeeProfile = () => {
                   type="email"
                   placeholder="john@example.com"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) => handleFieldChange('email', e.target.value)}
                 />
               </div>
             </div>
-
-            <Button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="w-full"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save Changes'
-              )}
-            </Button>
           </CardContent>
         </Card>
 
