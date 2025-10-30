@@ -52,7 +52,7 @@ const EmployeeTable = ({ employees, onEmployeeUpdate }: EmployeeTableProps) => {
   const handleStartEdit = (employee: Employee) => {
     setEditingId(employee.id);
     setEditValue(employee.status);
-    setShowCustomInput(!predefinedStatuses.includes(employee.status));
+    setShowCustomInput(false); // Always start with dropdown
   };
 
   const handleSaveStatus = async (employeeId: string) => {
@@ -74,13 +74,13 @@ const EmployeeTable = ({ employees, onEmployeeUpdate }: EmployeeTableProps) => {
     }
   };
 
-  const handleSelectChange = (value: string, employeeId: string) => {
+  const handleSelectChange = async (value: string, employeeId: string) => {
     if (value === '__custom__') {
       setShowCustomInput(true);
       setEditValue('');
     } else {
       setEditValue(value);
-      handleSaveStatus(employeeId);
+      await handleSaveStatus(employeeId);
     }
   };
 
@@ -139,11 +139,11 @@ const EmployeeTable = ({ employees, onEmployeeUpdate }: EmployeeTableProps) => {
                 />
               ) : (
                 <Select
-                  value={editValue}
+                  value={predefinedStatuses.includes(editValue) ? editValue : '__placeholder__'}
                   onValueChange={(value) => handleSelectChange(value, employee.id)}
                 >
                   <SelectTrigger className="h-8">
-                    <SelectValue />
+                    <SelectValue placeholder={!predefinedStatuses.includes(editValue) ? editValue : 'Select status'} />
                   </SelectTrigger>
                   <SelectContent>
                     {predefinedStatuses.map((status) => (
