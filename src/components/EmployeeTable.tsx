@@ -118,7 +118,7 @@ const EmployeeTable = ({ employees, onEmployeeUpdate }: EmployeeTableProps) => {
             </AvatarFallback>
           </Avatar>
           
-          <div className="flex-1 grid grid-cols-[auto_1fr] gap-3">
+          <div className="flex-1 grid grid-cols-[min-content_1fr] gap-3">
             <button
               onClick={() => navigate(`/employee/${employee.id}`)}
               className="text-left font-medium text-foreground hover:text-primary transition-colors"
