@@ -1,0 +1,114 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+interface Employee {
+  id: string;
+  name: string;
+  status: string;
+  image_url: string | null;
+}
+
+interface EmployeeTableProps {
+  employees: Employee[];
+  onEmployeeUpdate: () => void;
+}
+
+const EmployeeTable = ({ employees, onEmployeeUpdate }: EmployeeTableProps) => {
+  const navigate = useNavigate();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
+
+  const handleStartEdit = (employee: Employee) => {
+    setEditingId(employee.id);
+    setEditValue(employee.status);
+  };
+
+  const handleSaveStatus = async (employeeId: string) => {
+    try {
+      const { error } = await supabase
+        .from('employees')
+        .update({ status: editValue })
+        .eq('id', employeeId);
+
+      if (error) throw error;
+
+      setEditingId(null);
+      onEmployeeUpdate();
+      toast.success('Status updated');
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error('Failed to update status');
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, employeeId: string) => {
+    if (e.key === 'Enter') {
+      handleSaveStatus(employeeId);
+    } else if (e.key === 'Escape') {
+      setEditingId(null);
+    }
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  return (
+    <div className="space-y-2">
+      {employees.map((employee) => (
+        <div
+          key={employee.id}
+          className="flex items-center gap-3 p-3 bg-card rounded-lg border border-border hover:border-primary/50 transition-all"
+        >
+          <Avatar
+            className="h-10 w-10 cursor-pointer"
+            onClick={() => navigate(`/employee/${employee.id}`)}
+          >
+            <AvatarImage src={employee.image_url || undefined} />
+            <AvatarFallback className="text-sm">
+              {getInitials(employee.name)}
+            </AvatarFallback>
+          </Avatar>
+          
+          <div className="flex-1 grid grid-cols-2 gap-3">
+            <button
+              onClick={() => navigate(`/employee/${employee.id}`)}
+              className="text-left font-medium text-foreground hover:text-primary transition-colors"
+            >
+              {employee.name}
+            </button>
+            
+            {editingId === employee.id ? (
+              <Input
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={() => handleSaveStatus(employee.id)}
+                onKeyDown={(e) => handleKeyDown(e, employee.id)}
+                autoFocus
+                className="h-8"
+              />
+            ) : (
+              <button
+                onClick={() => handleStartEdit(employee)}
+                className="text-left text-muted-foreground hover:text-foreground transition-colors px-3 py-1 rounded hover:bg-accent"
+              >
+                {employee.status}
+              </button>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default EmployeeTable;
