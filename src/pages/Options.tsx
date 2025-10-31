@@ -508,14 +508,16 @@ const Options = () => {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete your account and remove all your data including:
-                    <ul className="list-disc list-inside mt-2 space-y-1">
-                      <li>All employees</li>
-                      <li>All status configurations</li>
-                      <li>All scheduled statuses</li>
-                      <li>Company settings</li>
-                      <li>Your account information</li>
-                    </ul>
+                    <div>
+                      This action cannot be undone. This will permanently delete your account and remove all your data including:
+                      <ul className="list-disc list-inside mt-2 space-y-1">
+                        <li>All employees</li>
+                        <li>All status configurations</li>
+                        <li>All scheduled statuses</li>
+                        <li>Company settings</li>
+                        <li>Your account information</li>
+                      </ul>
+                    </div>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

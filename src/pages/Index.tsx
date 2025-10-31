@@ -56,9 +56,14 @@ const Index = () => {
       if (error) throw error;
 
       setEmployees(data || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading employees:', error);
-      toast.error('Failed to load employees');
+      // Only show error toast if user is still authenticated
+      // (prevents error toast on logout/account deletion)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        toast.error('Failed to load employees');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -106,8 +111,9 @@ const Index = () => {
         .eq('tenant_id', user.id)
         .lt('scheduled_date', today);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error applying scheduled statuses:', error);
+      // Silently fail - this is expected during logout/account deletion
     }
   };
 
@@ -146,8 +152,9 @@ const Index = () => {
           .eq('id', recurring.employee_id);
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error applying recurring statuses:', error);
+      // Silently fail - this is expected during logout/account deletion
     }
   };
 
