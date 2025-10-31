@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
-import { useAdminMode } from '@/contexts/AdminModeContext';
 
 interface DailyMessageProps {
   tenantId: string;
@@ -16,7 +15,6 @@ export const DailyMessage = ({ tenantId }: DailyMessageProps) => {
   const [editedMessage, setEditedMessage] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const { isAdminMode } = useAdminMode();
 
   useEffect(() => {
     loadMessage();
@@ -72,10 +70,6 @@ export const DailyMessage = ({ tenantId }: DailyMessageProps) => {
     setIsOpen(true);
   };
 
-  if (!message && !isAdminMode) {
-    return null;
-  }
-
   return (
     <div className="relative overflow-hidden bg-accent/50 border rounded-lg py-3 px-4 flex items-center gap-3">
       <div className="flex-1 overflow-hidden">
@@ -90,41 +84,39 @@ export const DailyMessage = ({ tenantId }: DailyMessageProps) => {
         )}
       </div>
       
-      {isAdminMode && (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="shrink-0"
-              onClick={handleOpenDialog}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Today's Message</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Textarea
-                value={editedMessage}
-                onChange={(e) => setEditedMessage(e.target.value)}
-                placeholder="Enter the rolling message..."
-                className="min-h-[120px]"
-              />
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSave} disabled={isSaving}>
-                  {isSaving ? 'Saving...' : 'Save'}
-                </Button>
-              </div>
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="shrink-0"
+            onClick={handleOpenDialog}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Today's Message</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              value={editedMessage}
+              onChange={(e) => setEditedMessage(e.target.value)}
+              placeholder="Enter the rolling message..."
+              className="min-h-[120px]"
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'Save'}
+              </Button>
             </div>
-          </DialogContent>
-        </Dialog>
-      )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <style>{`
         .ticker-container {
