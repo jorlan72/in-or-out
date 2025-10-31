@@ -7,6 +7,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { LogOut, Loader2, Settings } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { AdminModeToggle } from '@/components/AdminModeToggle';
+import { useAdminMode } from '@/contexts/AdminModeContext';
 import EmployeeTable from '@/components/EmployeeTable';
 import AddEmployeeDialog from '@/components/AddEmployeeDialog';
 
@@ -22,6 +24,7 @@ interface Employee {
 const Index = () => {
   const navigate = useNavigate();
   const { user, companyName, signOut, loading } = useAuth();
+  const { isAdminMode } = useAdminMode();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -182,6 +185,7 @@ const Index = () => {
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
+            <AdminModeToggle />
             <Button variant="ghost" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               Sign Out
@@ -201,13 +205,15 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        <div className="flex gap-2">
-          <AddEmployeeDialog tenantId={user?.id || ''} onEmployeeAdded={loadEmployees} />
-          <Button variant="outline" onClick={() => navigate('/options')}>
-            <Settings className="mr-2 h-4 w-4" />
-            Options
-          </Button>
-        </div>
+        {isAdminMode && (
+          <div className="flex gap-2">
+            <AddEmployeeDialog tenantId={user?.id || ''} onEmployeeAdded={loadEmployees} />
+            <Button variant="outline" onClick={() => navigate('/options')}>
+              <Settings className="mr-2 h-4 w-4" />
+              Options
+            </Button>
+          </div>
+        )}
 
         <p className="text-xs text-muted-foreground text-center pt-8">
           Created by J. Lanesskog - 2025
