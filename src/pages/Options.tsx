@@ -205,16 +205,14 @@ const Options = () => {
         } else {
           throw error;
         }
+        setNewEmail(user?.email || '');
         return;
       }
 
-      toast.success('Confirmation email sent! Check your new email to complete the change.');
-      // Reset to current email since change isn't confirmed yet
-      setNewEmail(user?.email || '');
+      toast.success('Email updated successfully');
     } catch (error: any) {
       console.error('Error updating email:', error);
       toast.error(error.message || 'Failed to update email');
-      // Reset to current email on error
       setNewEmail(user?.email || '');
     } finally {
       setIsUpdatingEmail(false);
