@@ -78,9 +78,13 @@ const Options = () => {
       } else {
         setStatuses(data);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading statuses:', error);
-      toast.error('Failed to load status options');
+      // Only show error if user is still authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        toast.error('Failed to load status options');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -88,6 +92,10 @@ const Options = () => {
 
   const createDefaultStatuses = async () => {
     if (!user) return;
+
+    // Double-check user still exists before creating
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
 
     try {
       const { data, error } = await supabase
@@ -102,9 +110,13 @@ const Options = () => {
 
       setStatuses(data || []);
       toast.success('Default statuses created');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating default statuses:', error);
-      toast.error('Failed to create default statuses');
+      // Only show error if user is still authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        toast.error('Failed to create default statuses');
+      }
     }
   };
 
@@ -507,18 +519,16 @@ const Options = () => {
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    <div>
-                      This action cannot be undone. This will permanently delete your account and remove all your data including:
-                      <ul className="list-disc list-inside mt-2 space-y-1">
-                        <li>All employees</li>
-                        <li>All status configurations</li>
-                        <li>All scheduled statuses</li>
-                        <li>Company settings</li>
-                        <li>Your account information</li>
-                      </ul>
-                    </div>
+                  <AlertDialogDescription className="space-y-2">
+                    This action cannot be undone. This will permanently delete your account and remove all your data including:
                   </AlertDialogDescription>
+                  <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground pl-4">
+                    <li>All employees</li>
+                    <li>All status configurations</li>
+                    <li>All scheduled statuses</li>
+                    <li>Company settings</li>
+                    <li>Your account information</li>
+                  </ul>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
