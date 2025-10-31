@@ -181,27 +181,6 @@ export type Database = {
           },
         ]
       }
-      tenants: {
-        Row: {
-          created_at: string | null
-          id: string
-          password_hash: string
-          tenant_name: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          password_hash: string
-          tenant_name: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          password_hash?: string
-          tenant_name?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
