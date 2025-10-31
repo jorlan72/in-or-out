@@ -189,9 +189,8 @@ const Index = () => {
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <AdminModeToggle />
-            <Button variant="ghost" onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
+            <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Sign Out">
+              <LogOut className="h-4 w-4" />
             </Button>
           </div>
         </div>
