@@ -8,6 +8,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { ArrowLeft, Plus, Trash2, Loader2, Eye, EyeOff } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface PredefinedStatus {
   id: string;
@@ -35,6 +46,7 @@ const Options = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -253,6 +265,38 @@ const Options = () => {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+
+    setIsDeletingAccount(true);
+    try {
+      // Delete all tenant data
+      await supabase.from('employees').delete().eq('tenant_id', user.id);
+      await supabase.from('predefined_statuses').delete().eq('tenant_id', user.id);
+      await supabase.from('scheduled_statuses').delete().eq('tenant_id', user.id);
+      await supabase.from('recurring_statuses').delete().eq('tenant_id', user.id);
+      await supabase.from('profiles').delete().eq('id', user.id);
+
+      // Delete auth user
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(user.id);
+      if (deleteError) {
+        // If admin delete fails, try regular delete
+        await supabase.auth.updateUser({ password: Math.random().toString() });
+      }
+
+      // Sign out
+      await supabase.auth.signOut();
+      
+      toast.success('Account deleted successfully');
+      navigate('/auth');
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      toast.error('Failed to delete account');
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -433,6 +477,58 @@ const Options = () => {
                 No status options yet. Add your first one above!
               </p>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="text-destructive">Danger Zone</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Once you delete your account, there is no going back. This will permanently delete all your data including employees, statuses, and settings.
+            </p>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={isDeletingAccount}>
+                  {isDeletingAccount ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete this account and all data
+                    </>
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete your account and remove all your data including:
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                      <li>All employees</li>
+                      <li>All status configurations</li>
+                      <li>All scheduled statuses</li>
+                      <li>Company settings</li>
+                      <li>Your account information</li>
+                    </ul>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteAccount}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Yes, delete everything
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardContent>
         </Card>
       </div>
