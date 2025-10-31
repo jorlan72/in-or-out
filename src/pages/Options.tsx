@@ -190,16 +190,32 @@ const Options = () => {
       return;
     }
 
+    if (newEmail.trim() === user?.email) {
+      toast.error('This is already your current email');
+      return;
+    }
+
     setIsUpdatingEmail(true);
     try {
       const { error } = await supabase.auth.updateUser({ email: newEmail.trim() });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('email_send_rate_limit') || error.status === 429) {
+          toast.error('Please wait before requesting another email change');
+        } else {
+          throw error;
+        }
+        return;
+      }
 
-      toast.success('Email updated successfully. Please check your new email to confirm.');
-    } catch (error) {
+      toast.success('Confirmation email sent! Check your new email to complete the change.');
+      // Reset to current email since change isn't confirmed yet
+      setNewEmail(user?.email || '');
+    } catch (error: any) {
       console.error('Error updating email:', error);
-      toast.error('Failed to update email');
+      toast.error(error.message || 'Failed to update email');
+      // Reset to current email on error
+      setNewEmail(user?.email || '');
     } finally {
       setIsUpdatingEmail(false);
     }
