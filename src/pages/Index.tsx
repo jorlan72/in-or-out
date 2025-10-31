@@ -11,6 +11,7 @@ import { AdminModeToggle } from '@/components/AdminModeToggle';
 import { useAdminMode } from '@/contexts/AdminModeContext';
 import EmployeeTable from '@/components/EmployeeTable';
 import AddEmployeeDialog from '@/components/AddEmployeeDialog';
+import { DailyMessage } from '@/components/DailyMessage';
 
 interface Employee {
   id: string;
@@ -206,6 +207,8 @@ const Index = () => {
             )}
           </CardContent>
         </Card>
+
+        <DailyMessage tenantId={user?.id || ''} />
 
         {isAdminMode && (
           <div className="flex gap-2">

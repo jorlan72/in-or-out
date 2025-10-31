@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      daily_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message_text: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_text?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_text?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           created_at: string | null
