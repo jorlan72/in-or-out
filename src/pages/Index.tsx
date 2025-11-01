@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, Settings } from 'lucide-react';
 import { useAdminMode } from '@/contexts/AdminModeContext';
+import { useDailyMessageVisibility } from '@/contexts/DailyMessageVisibilityContext';
 import EmployeeTable from '@/components/EmployeeTable';
 import AddEmployeeDialog from '@/components/AddEmployeeDialog';
 import { DailyMessage } from '@/components/DailyMessage';
@@ -25,6 +26,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { user, companyName, signOut, loading } = useAuth();
   const { isAdminMode } = useAdminMode();
+  const { isVisible: isDailyMessageVisible } = useDailyMessageVisibility();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -200,7 +202,7 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        <DailyMessage tenantId={user?.id || ''} />
+        {isDailyMessageVisible && <DailyMessage tenantId={user?.id || ''} />}
 
         {isAdminMode && (
           <div className="flex gap-2">

@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "./contexts/AuthContext";
 import { AdminModeProvider } from "./contexts/AdminModeContext";
+import { DailyMessageVisibilityProvider } from "./contexts/DailyMessageVisibilityContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import EmployeeProfile from "./pages/EmployeeProfile";
@@ -19,20 +20,22 @@ const App = () => (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <AuthProvider>
         <AdminModeProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/employee/:id" element={<EmployeeProfile />} />
-                <Route path="/options" element={<Options />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
+          <DailyMessageVisibilityProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/employee/:id" element={<EmployeeProfile />} />
+                  <Route path="/options" element={<Options />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </TooltipProvider>
+          </DailyMessageVisibilityProvider>
         </AdminModeProvider>
       </AuthProvider>
     </ThemeProvider>
