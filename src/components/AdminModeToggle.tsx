@@ -8,7 +8,10 @@ export const AdminModeToggle = () => {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Switch checked={isAdminMode} onCheckedChange={toggleAdminMode} />
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-foreground">Admin Mode</span>
+          <Switch checked={isAdminMode} onCheckedChange={toggleAdminMode} />
+        </div>
       </TooltipTrigger>
       <TooltipContent>
         <p>{isAdminMode ? 'Admin mode on' : 'Admin mode off'}</p>
