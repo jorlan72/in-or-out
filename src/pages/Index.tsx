@@ -41,6 +41,32 @@ const Index = () => {
     }
   }, [user, loading, navigate]);
 
+  // Set up realtime subscription for employee changes
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('employees-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'employees',
+          filter: `tenant_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('Employee change detected:', payload);
+          loadEmployees();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   const loadEmployees = async () => {
     if (!user) return;
 
