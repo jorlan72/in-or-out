@@ -1,3 +1,4 @@
+import { Shield } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAdminMode } from '@/contexts/AdminModeContext';
@@ -9,7 +10,7 @@ export const AdminModeToggle = () => {
     <Tooltip>
       <TooltipTrigger asChild>
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-foreground">Admin Mode</span>
+          <Shield className="h-4 w-4 text-muted-foreground" />
           <Switch checked={isAdminMode} onCheckedChange={toggleAdminMode} />
         </div>
       </TooltipTrigger>
