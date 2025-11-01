@@ -1,4 +1,3 @@
-import { MessageSquare } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDailyMessageVisibility } from '@/contexts/DailyMessageVisibilityContext';
@@ -10,7 +9,7 @@ export const DailyMessageToggle = () => {
     <Tooltip>
       <TooltipTrigger asChild>
         <div className="flex items-center gap-2">
-          <MessageSquare className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">Message</span>
           <Switch checked={isVisible} onCheckedChange={toggleVisibility} />
         </div>
       </TooltipTrigger>
