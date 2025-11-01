@@ -5,13 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { LogOut, Loader2, Settings } from 'lucide-react';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { AdminModeToggle } from '@/components/AdminModeToggle';
+import { Loader2, Settings } from 'lucide-react';
 import { useAdminMode } from '@/contexts/AdminModeContext';
 import EmployeeTable from '@/components/EmployeeTable';
 import AddEmployeeDialog from '@/components/AddEmployeeDialog';
 import { DailyMessage } from '@/components/DailyMessage';
+import { Footer } from '@/components/Footer';
 
 interface Employee {
   id: string;
@@ -187,13 +186,6 @@ const Index = () => {
             </div>
             <p className="text-sm text-muted-foreground">{companyName}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <AdminModeToggle />
-            <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Sign Out">
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
         </div>
 
         <Card>
@@ -219,11 +211,9 @@ const Index = () => {
             </Button>
           </div>
         )}
-
-        <p className="text-xs text-muted-foreground text-center pt-8">
-          Created by J. Lanesskog - 2025
-        </p>
       </div>
+      
+      <Footer onLogout={handleLogout} />
     </div>
   );
 };
