@@ -71,7 +71,7 @@ export const DailyMessage = ({ tenantId }: DailyMessageProps) => {
   };
 
   return (
-    <div className="relative overflow-hidden bg-accent/50 border rounded-lg py-3 px-4 flex items-center gap-3">
+    <div className="relative overflow-hidden bg-accent/50 border rounded-lg py-1.5 px-4 flex items-center gap-3">
       <div className="flex-1 overflow-hidden">
         {message ? (
           <div className="ticker-container">
