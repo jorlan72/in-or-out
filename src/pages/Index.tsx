@@ -181,13 +181,11 @@ const Index = () => {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-4xl mx-auto space-y-4">
         <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <img src="/favicon.png" alt="InOrOut Logo" className="h-8 w-8" />
-              <h1 className="text-3xl font-bold text-foreground">InOrOut</h1>
-            </div>
-            <p className="text-sm text-muted-foreground">{companyName}</p>
+          <div className="flex items-center gap-2">
+            <img src="/favicon.png" alt="InOrOut Logo" className="h-8 w-8" />
+            <h1 className="text-3xl font-bold text-foreground">InOrOut</h1>
           </div>
+          <p className="text-sm text-muted-foreground">{companyName}</p>
         </div>
 
         <Card>
