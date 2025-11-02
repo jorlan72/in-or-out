@@ -31,7 +31,14 @@ const Index = () => {
   const { isVisible: isDailyMessageVisible } = useDailyMessageVisibility();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>(() => {
+    const saved = localStorage.getItem('viewMode');
+    return (saved === 'cards' || saved === 'table') ? saved : 'table';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('viewMode', viewMode);
+  }, [viewMode]);
 
   useEffect(() => {
     if (!loading && !user) {
