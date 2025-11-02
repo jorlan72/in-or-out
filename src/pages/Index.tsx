@@ -5,13 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Loader2, Settings } from 'lucide-react';
+import { Loader2, Settings, LayoutGrid, Table as TableIcon } from 'lucide-react';
 import { useAdminMode } from '@/contexts/AdminModeContext';
 import { useDailyMessageVisibility } from '@/contexts/DailyMessageVisibilityContext';
 import EmployeeTable from '@/components/EmployeeTable';
+import EmployeeCardView from '@/components/EmployeeCardView';
 import AddEmployeeDialog from '@/components/AddEmployeeDialog';
 import { DailyMessage } from '@/components/DailyMessage';
 import { Footer } from '@/components/Footer';
+import { Toggle } from '@/components/ui/toggle';
 
 interface Employee {
   id: string;
@@ -29,6 +31,7 @@ const Index = () => {
   const { isVisible: isDailyMessageVisible } = useDailyMessageVisibility();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -204,8 +207,8 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-4xl mx-auto space-y-4">
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="flex-1 p-4 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src="/favicon.png" alt="InOrOut Logo" className="h-8 w-8" />
@@ -214,29 +217,50 @@ const Index = () => {
           <p className="text-sm text-muted-foreground">{companyName}</p>
         </div>
 
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Toggle
+              pressed={viewMode === 'table'}
+              onPressedChange={(pressed) => setViewMode(pressed ? 'table' : 'cards')}
+              aria-label="Table view"
+            >
+              <TableIcon className="h-4 w-4" />
+            </Toggle>
+            <Toggle
+              pressed={viewMode === 'cards'}
+              onPressedChange={(pressed) => setViewMode(pressed ? 'cards' : 'table')}
+              aria-label="Card view"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Toggle>
+          </div>
+
+          {isAdminMode && (
+            <div className="flex gap-2">
+              <AddEmployeeDialog tenantId={user?.id || ''} onEmployeeAdded={loadEmployees} />
+              <Button variant="outline" onClick={() => navigate('/options')}>
+                <Settings className="mr-2 h-4 w-4" />
+                Options
+              </Button>
+            </div>
+          )}
+        </div>
+
         <Card>
-          <CardContent className="p-4 space-y-2">
+          <CardContent className="p-4">
             {employees.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <p>No team members yet. Add your first person to get started!</p>
               </div>
-            ) : (
+            ) : viewMode === 'table' ? (
               <EmployeeTable employees={employees} onEmployeeUpdate={loadEmployees} />
+            ) : (
+              <EmployeeCardView employees={employees} onEmployeeUpdate={loadEmployees} />
             )}
           </CardContent>
         </Card>
 
         {isDailyMessageVisible && <DailyMessage tenantId={user?.id || ''} />}
-
-        {isAdminMode && (
-          <div className="flex gap-2">
-            <AddEmployeeDialog tenantId={user?.id || ''} onEmployeeAdded={loadEmployees} />
-            <Button variant="outline" onClick={() => navigate('/options')}>
-              <Settings className="mr-2 h-4 w-4" />
-              Options
-            </Button>
-          </div>
-        )}
       </div>
       
       <Footer onLogout={handleLogout} />

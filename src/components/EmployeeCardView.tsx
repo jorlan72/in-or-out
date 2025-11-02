@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowUpDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -16,23 +15,18 @@ interface Employee {
   image_url: string | null;
 }
 
-interface EmployeeTableProps {
+interface EmployeeCardViewProps {
   employees: Employee[];
   onEmployeeUpdate: () => void;
 }
 
-type SortField = 'name' | 'status';
-type SortDirection = 'asc' | 'desc';
-
-const EmployeeTable = ({ employees, onEmployeeUpdate }: EmployeeTableProps) => {
+const EmployeeCardView = ({ employees, onEmployeeUpdate }: EmployeeCardViewProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [predefinedStatuses, setPredefinedStatuses] = useState<string[]>([]);
   const [showCustomInput, setShowCustomInput] = useState(false);
-  const [sortField, setSortField] = useState<SortField>('name');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   useEffect(() => {
     loadPredefinedStatuses();
@@ -59,7 +53,7 @@ const EmployeeTable = ({ employees, onEmployeeUpdate }: EmployeeTableProps) => {
   const handleStartEdit = (employee: Employee) => {
     setEditingId(employee.id);
     setEditValue(employee.status);
-    setShowCustomInput(false); // Always start with dropdown
+    setShowCustomInput(false);
   };
 
   const handleSaveStatus = async (employeeId: string, statusValue?: string) => {
@@ -108,75 +102,28 @@ const EmployeeTable = ({ employees, onEmployeeUpdate }: EmployeeTableProps) => {
       .slice(0, 2);
   };
 
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
-    }
-  };
-
-  const sortedEmployees = [...employees].sort((a, b) => {
-    const aValue = a[sortField].toLowerCase();
-    const bValue = b[sortField].toLowerCase();
-    const modifier = sortDirection === 'asc' ? 1 : -1;
-    return aValue.localeCompare(bValue) * modifier;
-  });
-
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-auto"></TableHead>
-          <TableHead 
-            className="w-auto cursor-pointer hover:text-foreground transition-colors"
-            onClick={() => handleSort('name')}
-          >
-            <div className="flex items-center gap-1">
-              Name
-              <ArrowUpDown className="h-3 w-3" />
-            </div>
-          </TableHead>
-          <TableHead 
-            className="w-full cursor-pointer hover:text-foreground transition-colors"
-            onClick={() => handleSort('status')}
-          >
-            <div className="flex items-center gap-1">
-              Status
-              <ArrowUpDown className="h-3 w-3" />
-            </div>
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {sortedEmployees.map((employee) => (
-          <TableRow
-            key={employee.id}
-            className="border-border hover:border-primary/50"
-          >
-            <TableCell className="w-auto p-2">
-              <Avatar
-                className="h-10 w-10 cursor-pointer"
-                onClick={() => navigate(`/employee/${employee.id}`)}
-              >
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {employees.map((employee) => (
+        <Card key={employee.id} className="hover:border-primary/50 transition-colors">
+          <CardContent className="p-4 space-y-3">
+            <div 
+              className="flex items-center gap-3 cursor-pointer"
+              onClick={() => navigate(`/employee/${employee.id}`)}
+            >
+              <Avatar className="h-12 w-12">
                 <AvatarImage src={employee.image_url || undefined} />
                 <AvatarFallback className="text-sm">
                   {getInitials(employee.name)}
                 </AvatarFallback>
               </Avatar>
-            </TableCell>
-            
-            <TableCell className="w-auto p-2">
-              <button
-                onClick={() => navigate(`/employee/${employee.id}`)}
-                className="text-left font-medium text-foreground hover:text-primary transition-colors whitespace-nowrap"
-              >
+              <div className="font-medium text-foreground hover:text-primary transition-colors">
                 {employee.name}
-              </button>
-            </TableCell>
+              </div>
+            </div>
             
-            <TableCell className="w-full p-2">
+            <div className="space-y-1">
+              <div className="text-xs text-muted-foreground">Status</div>
               {editingId === employee.id ? (
                 <div className="flex gap-2">
                   {showCustomInput ? (
@@ -222,12 +169,12 @@ const EmployeeTable = ({ employees, onEmployeeUpdate }: EmployeeTableProps) => {
                   {employee.status}
                 </button>
               )}
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   );
 };
 
-export default EmployeeTable;
+export default EmployeeCardView;
