@@ -13,7 +13,7 @@ import EmployeeCardView from '@/components/EmployeeCardView';
 import AddEmployeeDialog from '@/components/AddEmployeeDialog';
 import { DailyMessage } from '@/components/DailyMessage';
 import { Footer } from '@/components/Footer';
-import { Toggle } from '@/components/ui/toggle';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 interface Employee {
   id: string;
@@ -225,22 +225,18 @@ const Index = () => {
         </div>
 
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Toggle
-              pressed={viewMode === 'table'}
-              onPressedChange={(pressed) => setViewMode(pressed ? 'table' : 'cards')}
-              aria-label="Table view"
-            >
+          <ToggleGroup 
+            type="single" 
+            value={viewMode} 
+            onValueChange={(value) => value && setViewMode(value as 'table' | 'cards')}
+          >
+            <ToggleGroupItem value="table" aria-label="Table view">
               <TableIcon className="h-4 w-4" />
-            </Toggle>
-            <Toggle
-              pressed={viewMode === 'cards'}
-              onPressedChange={(pressed) => setViewMode(pressed ? 'cards' : 'table')}
-              aria-label="Card view"
-            >
+            </ToggleGroupItem>
+            <ToggleGroupItem value="cards" aria-label="Card view">
               <LayoutGrid className="h-4 w-4" />
-            </Toggle>
-          </div>
+            </ToggleGroupItem>
+          </ToggleGroup>
 
           {isAdminMode && (
             <div className="flex gap-2">
