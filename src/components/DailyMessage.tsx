@@ -71,11 +71,12 @@ export const DailyMessage = ({ tenantId }: DailyMessageProps) => {
   };
 
   return (
-    <div className="relative overflow-hidden bg-accent/50 border rounded-lg py-1.5 px-4 flex items-center gap-3">
-      <div className="flex-1 overflow-hidden">
+    <div className="relative overflow-hidden bg-gradient-to-r from-accent/80 via-accent/60 to-accent/80 border border-accent-foreground/20 rounded-lg py-1.5 px-4 flex items-center gap-3 shadow-sm animate-fade-in backdrop-blur-sm">
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent animate-shimmer"></div>
+      <div className="flex-1 overflow-hidden relative z-10">
         {message ? (
           <div className="ticker-container">
-            <div className="ticker-text">
+            <div className="ticker-text font-medium text-foreground">
               {message}
             </div>
           </div>
@@ -89,7 +90,7 @@ export const DailyMessage = ({ tenantId }: DailyMessageProps) => {
           <Button 
             variant="ghost" 
             size="icon" 
-            className="shrink-0"
+            className="shrink-0 relative z-10 hover-scale transition-all hover:bg-accent/50"
             onClick={handleOpenDialog}
           >
             <Pencil className="h-4 w-4" />
@@ -137,6 +138,19 @@ export const DailyMessage = ({ tenantId }: DailyMessageProps) => {
           100% {
             transform: translateX(-100%);
           }
+        }
+        
+        @keyframes shimmer {
+          0% {
+            transform: translateX(-100%);
+          }
+          100% {
+            transform: translateX(100%);
+          }
+        }
+        
+        .animate-shimmer {
+          animation: shimmer 3s ease-in-out infinite;
         }
         
         .ticker-container:hover .ticker-text {
