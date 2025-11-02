@@ -27,6 +27,10 @@ const EmployeeCardView = ({ employees, onEmployeeUpdate }: EmployeeCardViewProps
   const [editValue, setEditValue] = useState('');
   const [predefinedStatuses, setPredefinedStatuses] = useState<string[]>([]);
   const [showCustomInput, setShowCustomInput] = useState(false);
+  
+  const sortedEmployees = [...employees].sort((a, b) => 
+    a.name.localeCompare(b.name)
+  );
 
   useEffect(() => {
     loadPredefinedStatuses();
@@ -104,7 +108,7 @@ const EmployeeCardView = ({ employees, onEmployeeUpdate }: EmployeeCardViewProps
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {employees.map((employee) => (
+      {sortedEmployees.map((employee) => (
         <Card key={employee.id} className="hover:border-primary/50 transition-colors">
           <CardContent className="p-4 space-y-3">
             <div 
