@@ -90,13 +90,14 @@ const Index = () => {
 
     setIsLoading(true);
     try {
-      // Apply recurring statuses (skip if triggered by realtime to prevent loops)
+      // CRITICAL: Apply scheduled statuses FIRST to ensure they have priority
+      await applyScheduledStatuses();
+      
+      // Then apply recurring statuses (skip if triggered by realtime to prevent loops)
+      // Recurring will only update if there's no scheduled status for today
       if (!skipRecurringOnly) {
         await applyRecurringStatuses();
       }
-      
-      // ALWAYS apply scheduled statuses to maintain priority over recurring
-      await applyScheduledStatuses();
 
       const { data, error } = await supabase
         .from('employees')
@@ -236,6 +237,17 @@ const Index = () => {
       if (employeesError) throw employeesError;
       if (!employees || employees.length === 0) return;
 
+      // Check which employees have scheduled statuses for today (these should be skipped)
+      const { data: todayScheduled, error: scheduledError } = await supabase
+        .from('scheduled_statuses')
+        .select('employee_id')
+        .eq('tenant_id', user.id)
+        .eq('scheduled_date', today);
+
+      if (scheduledError) throw scheduledError;
+
+      const employeesWithScheduled = new Set(todayScheduled?.map(s => s.employee_id) || []);
+
       // Get recurring statuses for today's day of week for these employees
       const { data: recurringStatuses, error: recurringError } = await supabase
         .from('recurring_statuses')
@@ -247,15 +259,15 @@ const Index = () => {
       if (recurringError) throw recurringError;
       if (!recurringStatuses || recurringStatuses.length === 0) return;
 
-      // Filter to only statuses that haven't been applied today
+      // Filter out employees with scheduled statuses for today
       const statusesToApply = recurringStatuses.filter(status => 
-        !status.last_applied_date || status.last_applied_date !== today
+        (!status.last_applied_date || status.last_applied_date !== today) &&
+        !employeesWithScheduled.has(status.employee_id)
       );
 
       if (statusesToApply.length === 0) return;
 
-      // CRITICAL: Mark ALL recurring statuses as applied TODAY FIRST
-      // This prevents the infinite loop from realtime subscription
+      // Mark ALL recurring statuses as applied TODAY FIRST
       const recurringIds = statusesToApply.map(s => s.id);
       await supabase
         .from('recurring_statuses')
