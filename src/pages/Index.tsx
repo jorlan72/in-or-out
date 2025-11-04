@@ -51,11 +51,9 @@ const Index = () => {
     }
   }, [user, loading, navigate]);
 
-  // Set up realtime subscription for employee changes with debouncing
+  // Set up realtime subscription for employee changes
   useEffect(() => {
     if (!user) return;
-
-    let timeoutId: NodeJS.Timeout;
 
     const channel = supabase
       .channel('employees-changes')
@@ -69,33 +67,25 @@ const Index = () => {
         },
         (payload) => {
           console.log('Employee change detected:', payload);
-          // Debounce: clear existing timeout and set a new one
-          clearTimeout(timeoutId);
-          timeoutId = setTimeout(() => {
-            // Skip status application when triggered by realtime to prevent loops
-            loadEmployees(true);
-          }, 500); // Wait 500ms after the last change before reloading
+          loadEmployees();
         }
       )
       .subscribe();
 
     return () => {
-      clearTimeout(timeoutId);
       supabase.removeChannel(channel);
     };
   }, [user]);
 
-  const loadEmployees = async (skipRecurringOnly = false) => {
+  const loadEmployees = async () => {
     if (!user) return;
 
     setIsLoading(true);
     try {
-      // Apply recurring statuses first (skip if triggered by realtime to prevent loops)
-      if (!skipRecurringOnly) {
-        await applyRecurringStatuses();
-      }
+      // First, apply recurring statuses based on day of week
+      await applyRecurringStatuses();
       
-      // CRITICAL: Apply scheduled statuses LAST to ensure they override recurring
+      // Then, check and apply scheduled statuses for today (these override recurring)
       await applyScheduledStatuses();
 
       const { data, error } = await supabase
@@ -137,77 +127,22 @@ const Index = () => {
 
       if (!scheduledStatuses || scheduledStatuses.length === 0) return;
 
-      // CRITICAL: For scheduled statuses, we ALWAYS apply statuses for TODAY
-      // to maintain priority over recurring, even if already applied
-      const todayStatuses = scheduledStatuses.filter(status => 
-        status.scheduled_date === today
-      );
-
-      const pastStatuses = scheduledStatuses.filter(status =>
-        status.scheduled_date < today && (!status.last_applied_date || status.last_applied_date !== today)
-      );
-
-      const statusesToApply = [...todayStatuses, ...pastStatuses];
-
-      if (statusesToApply.length === 0) {
-        // Delete all past scheduled statuses (before today)
-        await supabase
-          .from('scheduled_statuses')
-          .delete()
-          .eq('tenant_id', user.id)
-          .lt('scheduled_date', today);
-        return;
-      }
-
       // Group by employee_id and get the most recent scheduled status for each
-      const statusesByEmployee = statusesToApply.reduce((acc, status) => {
+      const statusesByEmployee = scheduledStatuses.reduce((acc, status) => {
         const existing = acc[status.employee_id];
         if (!existing || status.scheduled_date > existing.scheduled_date) {
           acc[status.employee_id] = status;
         }
         return acc;
-      }, {} as Record<string, typeof statusesToApply[0]>);
+      }, {} as Record<string, typeof scheduledStatuses[0]>);
 
-      // Get current employee statuses to compare
-      const employeeIds = Object.keys(statusesByEmployee);
-      const { data: currentEmployees, error: employeesError } = await supabase
-        .from('employees')
-        .select('id, status')
-        .in('id', employeeIds);
-
-      if (employeesError) throw employeesError;
-
-      const currentStatusMap = currentEmployees?.reduce((acc, emp) => {
-        acc[emp.id] = emp.status;
-        return acc;
-      }, {} as Record<string, string>) || {};
-
-      // Update employee statuses - force update for today's scheduled statuses
-      const updatedStatusIds: string[] = [];
+      // Update employee statuses
       for (const employeeId in statusesByEmployee) {
         const status = statusesByEmployee[employeeId];
-        
-        // For TODAY's scheduled statuses, ALWAYS update to ensure priority over recurring
-        // For past scheduled statuses, only update if different
-        const isTodayStatus = status.scheduled_date === today;
-        const statusChanged = currentStatusMap[employeeId] !== status.status_text;
-        
-        if (isTodayStatus || statusChanged) {
-          await supabase
-            .from('employees')
-            .update({ status: status.status_text })
-            .eq('id', employeeId);
-          updatedStatusIds.push(status.id);
-        }
-      }
-
-      // CRITICAL: Mark scheduled statuses as applied AFTER employee updates
-      // This ensures scheduled is always the last operation
-      if (updatedStatusIds.length > 0) {
         await supabase
-          .from('scheduled_statuses')
-          .update({ last_applied_date: today })
-          .in('id', updatedStatusIds);
+          .from('employees')
+          .update({ status: status.status_text })
+          .eq('id', employeeId);
       }
 
       // Delete all past scheduled statuses (before today)
@@ -227,7 +162,6 @@ const Index = () => {
     if (!user) return;
 
     try {
-      const today = new Date().toISOString().split('T')[0];
       const currentDayOfWeek = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
 
       // Get all employees with recurring enabled
@@ -240,17 +174,6 @@ const Index = () => {
       if (employeesError) throw employeesError;
       if (!employees || employees.length === 0) return;
 
-      // Check which employees have scheduled statuses for today (these should be skipped)
-      const { data: todayScheduled, error: scheduledError } = await supabase
-        .from('scheduled_statuses')
-        .select('employee_id')
-        .eq('tenant_id', user.id)
-        .eq('scheduled_date', today);
-
-      if (scheduledError) throw scheduledError;
-
-      const employeesWithScheduled = new Set(todayScheduled?.map(s => s.employee_id) || []);
-
       // Get recurring statuses for today's day of week for these employees
       const { data: recurringStatuses, error: recurringError } = await supabase
         .from('recurring_statuses')
@@ -262,44 +185,12 @@ const Index = () => {
       if (recurringError) throw recurringError;
       if (!recurringStatuses || recurringStatuses.length === 0) return;
 
-      // Filter out employees with scheduled statuses for today
-      const statusesToApply = recurringStatuses.filter(status => 
-        (!status.last_applied_date || status.last_applied_date !== today) &&
-        !employeesWithScheduled.has(status.employee_id)
-      );
-
-      if (statusesToApply.length === 0) return;
-
-      // Mark ALL recurring statuses as applied TODAY FIRST
-      const recurringIds = statusesToApply.map(s => s.id);
-      await supabase
-        .from('recurring_statuses')
-        .update({ last_applied_date: today })
-        .in('id', recurringIds);
-
-      // Get current employee statuses to compare
-      const employeeIds = statusesToApply.map(s => s.employee_id);
-      const { data: currentEmployees, error: employeesCheckError } = await supabase
-        .from('employees')
-        .select('id, status')
-        .in('id', employeeIds);
-
-      if (employeesCheckError) throw employeesCheckError;
-
-      const currentStatusMap = currentEmployees?.reduce((acc, emp) => {
-        acc[emp.id] = emp.status;
-        return acc;
-      }, {} as Record<string, string>) || {};
-
-      // Now update employee statuses only if they've changed
-      for (const recurring of statusesToApply) {
-        // Only update if status has actually changed
-        if (currentStatusMap[recurring.employee_id] !== recurring.status_text) {
-          await supabase
-            .from('employees')
-            .update({ status: recurring.status_text })
-            .eq('id', recurring.employee_id);
-        }
+      // Update employee statuses based on recurring schedule
+      for (const recurring of recurringStatuses) {
+        await supabase
+          .from('employees')
+          .update({ status: recurring.status_text })
+          .eq('id', recurring.employee_id);
       }
 
     } catch (error: any) {
