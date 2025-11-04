@@ -160,13 +160,6 @@ const Index = () => {
         return;
       }
 
-      // Mark statuses as applied today (to track them, but we still reapply today's statuses)
-      const scheduledIds = statusesToApply.map(s => s.id);
-      await supabase
-        .from('scheduled_statuses')
-        .update({ last_applied_date: today })
-        .in('id', scheduledIds);
-
       // Group by employee_id and get the most recent scheduled status for each
       const statusesByEmployee = statusesToApply.reduce((acc, status) => {
         const existing = acc[status.employee_id];
@@ -191,6 +184,7 @@ const Index = () => {
       }, {} as Record<string, string>) || {};
 
       // Update employee statuses - force update for today's scheduled statuses
+      const updatedStatusIds: string[] = [];
       for (const employeeId in statusesByEmployee) {
         const status = statusesByEmployee[employeeId];
         
@@ -204,7 +198,17 @@ const Index = () => {
             .from('employees')
             .update({ status: status.status_text })
             .eq('id', employeeId);
+          updatedStatusIds.push(status.id);
         }
+      }
+
+      // CRITICAL: Mark scheduled statuses as applied AFTER employee updates
+      // This ensures scheduled is always the last operation
+      if (updatedStatusIds.length > 0) {
+        await supabase
+          .from('scheduled_statuses')
+          .update({ last_applied_date: today })
+          .in('id', updatedStatusIds);
       }
 
       // Delete all past scheduled statuses (before today)
