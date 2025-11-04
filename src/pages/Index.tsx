@@ -85,19 +85,18 @@ const Index = () => {
     };
   }, [user]);
 
-  const loadEmployees = async (skipStatusApplication = false) => {
+  const loadEmployees = async (skipRecurringOnly = false) => {
     if (!user) return;
 
     setIsLoading(true);
     try {
-      // Only apply statuses if not skipped (skip when triggered by realtime)
-      if (!skipStatusApplication) {
-        // First, apply recurring statuses based on day of week
+      // Apply recurring statuses (skip if triggered by realtime to prevent loops)
+      if (!skipRecurringOnly) {
         await applyRecurringStatuses();
-        
-        // Then, check and apply scheduled statuses for today (these override recurring)
-        await applyScheduledStatuses();
       }
+      
+      // ALWAYS apply scheduled statuses to maintain priority over recurring
+      await applyScheduledStatuses();
 
       const { data, error } = await supabase
         .from('employees')
