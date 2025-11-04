@@ -189,12 +189,16 @@ const Index = () => {
         return acc;
       }, {} as Record<string, string>) || {};
 
-      // Update employee statuses only if they've changed
+      // Update employee statuses - force update for today's scheduled statuses
       for (const employeeId in statusesByEmployee) {
         const status = statusesByEmployee[employeeId];
         
-        // Only update if status has actually changed
-        if (currentStatusMap[employeeId] !== status.status_text) {
+        // For TODAY's scheduled statuses, ALWAYS update to ensure priority over recurring
+        // For past scheduled statuses, only update if different
+        const isTodayStatus = status.scheduled_date === today;
+        const statusChanged = currentStatusMap[employeeId] !== status.status_text;
+        
+        if (isTodayStatus || statusChanged) {
           await supabase
             .from('employees')
             .update({ status: status.status_text })
