@@ -201,6 +201,7 @@ const Index = () => {
     if (!user) return;
 
     try {
+      const today = new Date().toISOString().split('T')[0];
       const currentDayOfWeek = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
 
       // Get all employees with recurring enabled
@@ -224,12 +225,42 @@ const Index = () => {
       if (recurringError) throw recurringError;
       if (!recurringStatuses || recurringStatuses.length === 0) return;
 
-      // Update employee statuses based on recurring schedule
-      for (const recurring of recurringStatuses) {
+      // Filter to only statuses that haven't been applied today
+      const statusesToApply = recurringStatuses.filter(status => 
+        !status.last_applied_date || status.last_applied_date !== today
+      );
+
+      if (statusesToApply.length === 0) return;
+
+      // Get current employee statuses to compare
+      const employeeIds = statusesToApply.map(s => s.employee_id);
+      const { data: currentEmployees, error: employeesCheckError } = await supabase
+        .from('employees')
+        .select('id, status')
+        .in('id', employeeIds);
+
+      if (employeesCheckError) throw employeesCheckError;
+
+      const currentStatusMap = currentEmployees?.reduce((acc, emp) => {
+        acc[emp.id] = emp.status;
+        return acc;
+      }, {} as Record<string, string>) || {};
+
+      // Update employee statuses based on recurring schedule, only if changed
+      for (const recurring of statusesToApply) {
+        // Only update if status has actually changed
+        if (currentStatusMap[recurring.employee_id] !== recurring.status_text) {
+          await supabase
+            .from('employees')
+            .update({ status: recurring.status_text })
+            .eq('id', recurring.employee_id);
+        }
+
+        // Mark this recurring status as applied today
         await supabase
-          .from('employees')
-          .update({ status: recurring.status_text })
-          .eq('id', recurring.employee_id);
+          .from('recurring_statuses')
+          .update({ last_applied_date: today })
+          .eq('id', recurring.id);
       }
 
     } catch (error: any) {

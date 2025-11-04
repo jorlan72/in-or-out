@@ -141,6 +141,7 @@ export type Database = {
           day_of_week: number
           employee_id: string
           id: string
+          last_applied_date: string | null
           status_text: string
           tenant_id: string
         }
@@ -149,6 +150,7 @@ export type Database = {
           day_of_week: number
           employee_id: string
           id?: string
+          last_applied_date?: string | null
           status_text: string
           tenant_id: string
         }
@@ -157,6 +159,7 @@ export type Database = {
           day_of_week?: number
           employee_id?: string
           id?: string
+          last_applied_date?: string | null
           status_text?: string
           tenant_id?: string
         }
