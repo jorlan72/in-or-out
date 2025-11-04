@@ -98,6 +98,15 @@ const EmployeeProfile = () => {
 
       if (error) throw error;
 
+      // Clear status tracking fields when profile is opened
+      await supabase
+        .from('employees')
+        .update({ 
+          already_applied: false,
+          applied_date: null 
+        })
+        .eq('id', id);
+
       setEmployee(data);
       setFormData({
         name: data.name,
