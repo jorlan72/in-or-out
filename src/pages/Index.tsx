@@ -138,10 +138,17 @@ const Index = () => {
 
       if (!scheduledStatuses || scheduledStatuses.length === 0) return;
 
-      // Filter to only statuses that haven't been applied today
-      const statusesToApply = scheduledStatuses.filter(status => 
-        !status.last_applied_date || status.last_applied_date !== today
+      // CRITICAL: For scheduled statuses, we ALWAYS apply statuses for TODAY
+      // to maintain priority over recurring, even if already applied
+      const todayStatuses = scheduledStatuses.filter(status => 
+        status.scheduled_date === today
       );
+
+      const pastStatuses = scheduledStatuses.filter(status =>
+        status.scheduled_date < today && (!status.last_applied_date || status.last_applied_date !== today)
+      );
+
+      const statusesToApply = [...todayStatuses, ...pastStatuses];
 
       if (statusesToApply.length === 0) {
         // Delete all past scheduled statuses (before today)
@@ -153,8 +160,7 @@ const Index = () => {
         return;
       }
 
-      // CRITICAL: Mark ALL scheduled statuses as applied TODAY FIRST
-      // This prevents the infinite loop from realtime subscription
+      // Mark statuses as applied today (to track them, but we still reapply today's statuses)
       const scheduledIds = statusesToApply.map(s => s.id);
       await supabase
         .from('scheduled_statuses')
@@ -184,7 +190,7 @@ const Index = () => {
         return acc;
       }, {} as Record<string, string>) || {};
 
-      // Now update employee statuses only if they've changed
+      // Update employee statuses only if they've changed
       for (const employeeId in statusesByEmployee) {
         const status = statusesByEmployee[employeeId];
         
