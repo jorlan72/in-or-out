@@ -90,14 +90,13 @@ const Index = () => {
 
     setIsLoading(true);
     try {
-      // CRITICAL: Apply scheduled statuses FIRST to ensure they have priority
-      await applyScheduledStatuses();
-      
-      // Then apply recurring statuses (skip if triggered by realtime to prevent loops)
-      // Recurring will only update if there's no scheduled status for today
+      // Apply recurring statuses first (skip if triggered by realtime to prevent loops)
       if (!skipRecurringOnly) {
         await applyRecurringStatuses();
       }
+      
+      // CRITICAL: Apply scheduled statuses LAST to ensure they override recurring
+      await applyScheduledStatuses();
 
       const { data, error } = await supabase
         .from('employees')
