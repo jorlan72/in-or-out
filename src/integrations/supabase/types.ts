@@ -40,6 +40,8 @@ export type Database = {
       }
       employees: {
         Row: {
+          already_applied: boolean | null
+          applied_date: string | null
           created_at: string | null
           email: string | null
           id: string
@@ -52,6 +54,8 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          already_applied?: boolean | null
+          applied_date?: string | null
           created_at?: string | null
           email?: string | null
           id?: string
@@ -64,6 +68,8 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          already_applied?: boolean | null
+          applied_date?: string | null
           created_at?: string | null
           email?: string | null
           id?: string
@@ -141,6 +147,7 @@ export type Database = {
           day_of_week: number
           employee_id: string
           id: string
+          last_applied_date: string | null
           status_text: string
           tenant_id: string
         }
@@ -149,6 +156,7 @@ export type Database = {
           day_of_week: number
           employee_id: string
           id?: string
+          last_applied_date?: string | null
           status_text: string
           tenant_id: string
         }
@@ -157,6 +165,7 @@ export type Database = {
           day_of_week?: number
           employee_id?: string
           id?: string
+          last_applied_date?: string | null
           status_text?: string
           tenant_id?: string
         }
@@ -175,6 +184,7 @@ export type Database = {
           created_at: string
           employee_id: string
           id: string
+          last_applied_date: string | null
           scheduled_date: string
           status_text: string
           tenant_id: string
@@ -183,6 +193,7 @@ export type Database = {
           created_at?: string
           employee_id: string
           id?: string
+          last_applied_date?: string | null
           scheduled_date: string
           status_text: string
           tenant_id: string
@@ -191,6 +202,7 @@ export type Database = {
           created_at?: string
           employee_id?: string
           id?: string
+          last_applied_date?: string | null
           scheduled_date?: string
           status_text?: string
           tenant_id?: string

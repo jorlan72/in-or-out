@@ -82,12 +82,27 @@ const Index = () => {
 
     setIsLoading(true);
     try {
-      // First, apply recurring statuses based on day of week
-      await applyRecurringStatuses();
-      
-      // Then, check and apply scheduled statuses for today (these override recurring)
-      await applyScheduledStatuses();
+      const today = new Date().toISOString().split('T')[0];
 
+      // Step 1: Get employees that haven't been processed today
+      const { data: allEmployees, error: fetchError } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('tenant_id', user.id);
+
+      if (fetchError) throw fetchError;
+
+      const employeesToProcess = allEmployees?.filter(emp => 
+        !emp.already_applied || emp.applied_date !== today
+      ) || [];
+
+      // Step 2 & 3: Apply statuses for employees that need processing
+      if (employeesToProcess.length > 0) {
+        await applyRecurringStatuses(employeesToProcess.map(e => e.id), today);
+        await applyScheduledStatuses(employeesToProcess.map(e => e.id), today);
+      }
+
+      // Fetch updated employee data
       const { data, error } = await supabase
         .from('employees')
         .select('*')
@@ -99,8 +114,6 @@ const Index = () => {
       setEmployees(data || []);
     } catch (error: any) {
       console.error('Error loading employees:', error);
-      // Only show error toast if user is still authenticated
-      // (prevents error toast on logout/account deletion)
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         toast.error('Failed to load employees');
@@ -110,92 +123,89 @@ const Index = () => {
     }
   };
 
-  const applyScheduledStatuses = async () => {
+  const applyScheduledStatuses = async (employeeIds: string[], today: string) => {
     if (!user) return;
 
     try {
-      const today = new Date().toISOString().split('T')[0];
-
-      // Get all scheduled statuses for today or earlier
+      // Get scheduled statuses for today for the specified employees
       const { data: scheduledStatuses, error: fetchError } = await supabase
         .from('scheduled_statuses')
         .select('*')
         .eq('tenant_id', user.id)
-        .lte('scheduled_date', today);
+        .eq('scheduled_date', today)
+        .in('employee_id', employeeIds);
 
       if (fetchError) throw fetchError;
-
       if (!scheduledStatuses || scheduledStatuses.length === 0) return;
 
-      // Group by employee_id and get the most recent scheduled status for each
-      const statusesByEmployee = scheduledStatuses.reduce((acc, status) => {
-        const existing = acc[status.employee_id];
-        if (!existing || status.scheduled_date > existing.scheduled_date) {
-          acc[status.employee_id] = status;
-        }
-        return acc;
-      }, {} as Record<string, typeof scheduledStatuses[0]>);
-
-      // Update employee statuses
-      for (const employeeId in statusesByEmployee) {
-        const status = statusesByEmployee[employeeId];
+      // Step 3: Update employee statuses with scheduled status
+      for (const status of scheduledStatuses) {
         await supabase
           .from('employees')
-          .update({ status: status.status_text })
-          .eq('id', employeeId);
+          .update({ 
+            status: status.status_text,
+            already_applied: true,
+            applied_date: today
+          })
+          .eq('id', status.employee_id);
       }
 
-      // Delete all past scheduled statuses (before today)
+      // Delete applied scheduled statuses
       await supabase
         .from('scheduled_statuses')
         .delete()
         .eq('tenant_id', user.id)
-        .lt('scheduled_date', today);
+        .eq('scheduled_date', today)
+        .in('employee_id', employeeIds);
 
     } catch (error: any) {
       console.error('Error applying scheduled statuses:', error);
-      // Silently fail - this is expected during logout/account deletion
     }
   };
 
-  const applyRecurringStatuses = async () => {
+  const applyRecurringStatuses = async (employeeIds: string[], today: string) => {
     if (!user) return;
 
     try {
-      const currentDayOfWeek = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const currentDayOfWeek = new Date().getDay();
 
-      // Get all employees with recurring enabled
-      const { data: employees, error: employeesError } = await supabase
-        .from('employees')
-        .select('id')
-        .eq('tenant_id', user.id)
-        .eq('recurring_enabled', true);
-
-      if (employeesError) throw employeesError;
-      if (!employees || employees.length === 0) return;
-
-      // Get recurring statuses for today's day of week for these employees
+      // Get recurring statuses for today's day of week for the specified employees
       const { data: recurringStatuses, error: recurringError } = await supabase
         .from('recurring_statuses')
         .select('*')
         .eq('tenant_id', user.id)
         .eq('day_of_week', currentDayOfWeek)
-        .in('employee_id', employees.map(e => e.id));
+        .in('employee_id', employeeIds);
 
       if (recurringError) throw recurringError;
       if (!recurringStatuses || recurringStatuses.length === 0) return;
 
-      // Update employee statuses based on recurring schedule
+      // Get scheduled statuses for today to avoid overwriting them
+      const { data: scheduledToday } = await supabase
+        .from('scheduled_statuses')
+        .select('employee_id')
+        .eq('tenant_id', user.id)
+        .eq('scheduled_date', today)
+        .in('employee_id', employeeIds);
+
+      const employeesWithScheduled = new Set(scheduledToday?.map(s => s.employee_id) || []);
+
+      // Step 2: Apply recurring statuses (only if no scheduled status exists)
       for (const recurring of recurringStatuses) {
-        await supabase
-          .from('employees')
-          .update({ status: recurring.status_text })
-          .eq('id', recurring.employee_id);
+        if (!employeesWithScheduled.has(recurring.employee_id)) {
+          await supabase
+            .from('employees')
+            .update({ 
+              status: recurring.status_text,
+              already_applied: true,
+              applied_date: today
+            })
+            .eq('id', recurring.employee_id);
+        }
       }
 
     } catch (error: any) {
       console.error('Error applying recurring statuses:', error);
-      // Silently fail - this is expected during logout/account deletion
     }
   };
 
