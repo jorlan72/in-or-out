@@ -142,6 +142,14 @@ const Index = () => {
         return;
       }
 
+      // CRITICAL: Mark ALL scheduled statuses as applied TODAY FIRST
+      // This prevents the infinite loop from realtime subscription
+      const scheduledIds = statusesToApply.map(s => s.id);
+      await supabase
+        .from('scheduled_statuses')
+        .update({ last_applied_date: today })
+        .in('id', scheduledIds);
+
       // Group by employee_id and get the most recent scheduled status for each
       const statusesByEmployee = statusesToApply.reduce((acc, status) => {
         const existing = acc[status.employee_id];
@@ -165,7 +173,7 @@ const Index = () => {
         return acc;
       }, {} as Record<string, string>) || {};
 
-      // Update employee statuses only if they've changed
+      // Now update employee statuses only if they've changed
       for (const employeeId in statusesByEmployee) {
         const status = statusesByEmployee[employeeId];
         
@@ -176,12 +184,6 @@ const Index = () => {
             .update({ status: status.status_text })
             .eq('id', employeeId);
         }
-
-        // Mark this scheduled status as applied today
-        await supabase
-          .from('scheduled_statuses')
-          .update({ last_applied_date: today })
-          .eq('id', status.id);
       }
 
       // Delete all past scheduled statuses (before today)
@@ -232,6 +234,14 @@ const Index = () => {
 
       if (statusesToApply.length === 0) return;
 
+      // CRITICAL: Mark ALL recurring statuses as applied TODAY FIRST
+      // This prevents the infinite loop from realtime subscription
+      const recurringIds = statusesToApply.map(s => s.id);
+      await supabase
+        .from('recurring_statuses')
+        .update({ last_applied_date: today })
+        .in('id', recurringIds);
+
       // Get current employee statuses to compare
       const employeeIds = statusesToApply.map(s => s.employee_id);
       const { data: currentEmployees, error: employeesCheckError } = await supabase
@@ -246,7 +256,7 @@ const Index = () => {
         return acc;
       }, {} as Record<string, string>) || {};
 
-      // Update employee statuses based on recurring schedule, only if changed
+      // Now update employee statuses only if they've changed
       for (const recurring of statusesToApply) {
         // Only update if status has actually changed
         if (currentStatusMap[recurring.employee_id] !== recurring.status_text) {
@@ -255,12 +265,6 @@ const Index = () => {
             .update({ status: recurring.status_text })
             .eq('id', recurring.employee_id);
         }
-
-        // Mark this recurring status as applied today
-        await supabase
-          .from('recurring_statuses')
-          .update({ last_applied_date: today })
-          .eq('id', recurring.id);
       }
 
     } catch (error: any) {
