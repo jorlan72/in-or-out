@@ -175,6 +175,7 @@ export type Database = {
           created_at: string
           employee_id: string
           id: string
+          last_applied_date: string | null
           scheduled_date: string
           status_text: string
           tenant_id: string
@@ -183,6 +184,7 @@ export type Database = {
           created_at?: string
           employee_id: string
           id?: string
+          last_applied_date?: string | null
           scheduled_date: string
           status_text: string
           tenant_id: string
@@ -191,6 +193,7 @@ export type Database = {
           created_at?: string
           employee_id?: string
           id?: string
+          last_applied_date?: string | null
           scheduled_date?: string
           status_text?: string
           tenant_id?: string
