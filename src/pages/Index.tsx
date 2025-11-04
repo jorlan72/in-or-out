@@ -51,9 +51,11 @@ const Index = () => {
     }
   }, [user, loading, navigate]);
 
-  // Set up realtime subscription for employee changes
+  // Set up realtime subscription for employee changes with debouncing
   useEffect(() => {
     if (!user) return;
+
+    let timeoutId: NodeJS.Timeout;
 
     const channel = supabase
       .channel('employees-changes')
@@ -67,26 +69,35 @@ const Index = () => {
         },
         (payload) => {
           console.log('Employee change detected:', payload);
-          loadEmployees();
+          // Debounce: clear existing timeout and set a new one
+          clearTimeout(timeoutId);
+          timeoutId = setTimeout(() => {
+            // Skip status application when triggered by realtime to prevent loops
+            loadEmployees(true);
+          }, 500); // Wait 500ms after the last change before reloading
         }
       )
       .subscribe();
 
     return () => {
+      clearTimeout(timeoutId);
       supabase.removeChannel(channel);
     };
   }, [user]);
 
-  const loadEmployees = async () => {
+  const loadEmployees = async (skipStatusApplication = false) => {
     if (!user) return;
 
     setIsLoading(true);
     try {
-      // First, apply recurring statuses based on day of week
-      await applyRecurringStatuses();
-      
-      // Then, check and apply scheduled statuses for today (these override recurring)
-      await applyScheduledStatuses();
+      // Only apply statuses if not skipped (skip when triggered by realtime)
+      if (!skipStatusApplication) {
+        // First, apply recurring statuses based on day of week
+        await applyRecurringStatuses();
+        
+        // Then, check and apply scheduled statuses for today (these override recurring)
+        await applyScheduledStatuses();
+      }
 
       const { data, error } = await supabase
         .from('employees')
