@@ -136,6 +136,9 @@ const Index = () => {
     if (!user) return;
 
     try {
+      console.log('[applyScheduledStatuses] Processing for date:', today);
+      console.log('[applyScheduledStatuses] Employee IDs:', employeeIds);
+      
       // Get scheduled statuses for today for the specified employees
       const { data: scheduledStatuses, error: fetchError } = await supabase
         .from('scheduled_statuses')
@@ -145,6 +148,9 @@ const Index = () => {
         .in('employee_id', employeeIds);
 
       if (fetchError) throw fetchError;
+      
+      console.log('[applyScheduledStatuses] Found scheduled statuses for today:', scheduledStatuses);
+      
       if (!scheduledStatuses || scheduledStatuses.length === 0) return;
 
       // Step 3: Update employee statuses with scheduled status
@@ -159,12 +165,22 @@ const Index = () => {
           .eq('id', status.employee_id);
       }
 
-    // Delete only past scheduled statuses (before today)
-    await supabase
-      .from('scheduled_statuses')
-      .delete()
-      .eq('tenant_id', user.id)
-      .lt('scheduled_date', today);
+      // Delete only past scheduled statuses (before today)
+      console.log('[applyScheduledStatuses] Deleting statuses before:', today);
+      
+      const { data: deletedStatuses, error: deleteError } = await supabase
+        .from('scheduled_statuses')
+        .select('*')
+        .eq('tenant_id', user.id)
+        .lt('scheduled_date', today);
+      
+      console.log('[applyScheduledStatuses] Statuses to be deleted:', deletedStatuses);
+      
+      await supabase
+        .from('scheduled_statuses')
+        .delete()
+        .eq('tenant_id', user.id)
+        .lt('scheduled_date', today);
 
     } catch (error: any) {
       console.error('Error applying scheduled statuses:', error);
