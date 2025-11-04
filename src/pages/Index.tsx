@@ -67,15 +67,24 @@ const Index = () => {
         },
         async (payload) => {
           console.log('Employee change detected:', payload);
-          // Only refetch data, don't reapply status logic
-          const { data, error } = await supabase
-            .from('employees')
-            .select('*')
-            .eq('tenant_id', user.id)
-            .order('created_at', { ascending: true });
+          
+          // If already_applied was cleared, trigger full reload with status application
+          if (payload.eventType === 'UPDATE' && 
+              payload.new.already_applied === false && 
+              payload.old.already_applied !== false) {
+            console.log('Status tracking cleared, reapplying statuses');
+            loadEmployees();
+          } else {
+            // Otherwise just refetch data
+            const { data, error } = await supabase
+              .from('employees')
+              .select('*')
+              .eq('tenant_id', user.id)
+              .order('created_at', { ascending: true });
 
-          if (!error) {
-            setEmployees(data || []);
+            if (!error) {
+              setEmployees(data || []);
+            }
           }
         }
       )
