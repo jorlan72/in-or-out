@@ -65,9 +65,18 @@ const Index = () => {
           table: 'employees',
           filter: `tenant_id=eq.${user.id}`
         },
-        (payload) => {
+        async (payload) => {
           console.log('Employee change detected:', payload);
-          loadEmployees();
+          // Only refetch data, don't reapply status logic
+          const { data, error } = await supabase
+            .from('employees')
+            .select('*')
+            .eq('tenant_id', user.id)
+            .order('created_at', { ascending: true });
+
+          if (!error) {
+            setEmployees(data || []);
+          }
         }
       )
       .subscribe();
