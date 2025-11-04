@@ -159,13 +159,12 @@ const Index = () => {
           .eq('id', status.employee_id);
       }
 
-      // Delete applied scheduled statuses
-      await supabase
-        .from('scheduled_statuses')
-        .delete()
-        .eq('tenant_id', user.id)
-        .eq('scheduled_date', today)
-        .in('employee_id', employeeIds);
+    // Delete only past scheduled statuses (before today)
+    await supabase
+      .from('scheduled_statuses')
+      .delete()
+      .eq('tenant_id', user.id)
+      .lt('scheduled_date', today);
 
     } catch (error: any) {
       console.error('Error applying scheduled statuses:', error);
