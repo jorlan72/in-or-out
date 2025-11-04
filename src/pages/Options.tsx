@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { ArrowLeft, Plus, Trash2, Loader2, Eye, EyeOff, Download, Upload } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Loader2, Eye, EyeOff } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,8 +47,6 @@ const Options = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -279,130 +277,6 @@ const Options = () => {
     }
   };
 
-  const handleExportData = async () => {
-    if (!user) return;
-
-    setIsExporting(true);
-    try {
-      // Fetch all data
-      const [employeesRes, statusesRes, scheduledRes, recurringRes, profileRes] = await Promise.all([
-        supabase.from('employees').select('*').eq('tenant_id', user.id),
-        supabase.from('predefined_statuses').select('*').eq('tenant_id', user.id),
-        supabase.from('scheduled_statuses').select('*').eq('tenant_id', user.id),
-        supabase.from('recurring_statuses').select('*').eq('tenant_id', user.id),
-        supabase.from('profiles').select('*').eq('id', user.id).single(),
-      ]);
-
-      if (employeesRes.error) throw employeesRes.error;
-      if (statusesRes.error) throw statusesRes.error;
-      if (scheduledRes.error) throw scheduledRes.error;
-      if (recurringRes.error) throw recurringRes.error;
-      if (profileRes.error) throw profileRes.error;
-
-      const exportData = {
-        version: '1.0',
-        exportDate: new Date().toISOString(),
-        data: {
-          employees: employeesRes.data,
-          predefined_statuses: statusesRes.data,
-          scheduled_statuses: scheduledRes.data,
-          recurring_statuses: recurringRes.data,
-          profile: profileRes.data,
-        },
-      };
-
-      // Download as JSON file
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `inorout-backup-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast.success('Data exported successfully');
-    } catch (error) {
-      console.error('Error exporting data:', error);
-      toast.error('Failed to export data');
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const handleImportData = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!user || !event.target.files || !event.target.files[0]) return;
-
-    const file = event.target.files[0];
-    setIsImporting(true);
-
-    try {
-      const text = await file.text();
-      const importData = JSON.parse(text);
-
-      if (!importData.data) {
-        throw new Error('Invalid backup file format');
-      }
-
-      const { data } = importData;
-
-      // Prepare data for import by removing IDs and setting correct tenant_id
-      const employeesToImport = (data.employees || []).map((emp: any) => {
-        const { id, created_at, updated_at, ...rest } = emp;
-        return { ...rest, tenant_id: user.id };
-      });
-
-      const statusesToImport = (data.predefined_statuses || []).map((status: any) => {
-        const { id, created_at, ...rest } = status;
-        return { ...rest, tenant_id: user.id };
-      });
-
-      const scheduledToImport = (data.scheduled_statuses || []).map((scheduled: any) => {
-        const { id, created_at, employee_id, ...rest } = scheduled;
-        return { ...rest, tenant_id: user.id };
-      });
-
-      const recurringToImport = (data.recurring_statuses || []).map((recurring: any) => {
-        const { id, created_at, employee_id, ...rest } = recurring;
-        return { ...rest, tenant_id: user.id };
-      });
-
-      // Import data (append to existing)
-      const promises = [];
-      
-      if (employeesToImport.length > 0) {
-        promises.push(supabase.from('employees').insert(employeesToImport));
-      }
-      
-      if (statusesToImport.length > 0) {
-        promises.push(supabase.from('predefined_statuses').insert(statusesToImport));
-      }
-      
-      if (scheduledToImport.length > 0) {
-        promises.push(supabase.from('scheduled_statuses').insert(scheduledToImport));
-      }
-      
-      if (recurringToImport.length > 0) {
-        promises.push(supabase.from('recurring_statuses').insert(recurringToImport));
-      }
-
-      await Promise.all(promises);
-
-      toast.success('Data imported successfully');
-      
-      // Reload the page to reflect new data
-      window.location.reload();
-    } catch (error) {
-      console.error('Error importing data:', error);
-      toast.error('Failed to import data. Please check the file format.');
-    } finally {
-      setIsImporting(false);
-      // Reset file input
-      event.target.value = '';
-    }
-  };
-
   const handleDeleteAccount = async () => {
     if (!user) return;
 
@@ -624,56 +498,6 @@ const Options = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
-              <h3 className="font-semibold mb-2">Backup & Restore</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Export all your data to a JSON file for backup, or import data from a previous backup. Import will append to existing data.
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleExportData}
-                  disabled={isExporting}
-                >
-                  {isExporting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Exporting...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="mr-2 h-4 w-4" />
-                      Export Data
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  disabled={isImporting}
-                  onClick={() => document.getElementById('import-file')?.click()}
-                >
-                  {isImporting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Importing...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="mr-2 h-4 w-4" />
-                      Import Data
-                    </>
-                  )}
-                </Button>
-                <input
-                  id="import-file"
-                  type="file"
-                  accept=".json"
-                  onChange={handleImportData}
-                  className="hidden"
-                />
-              </div>
-            </div>
-
-            <div className="pt-6 border-t">
               <p className="text-sm text-muted-foreground mb-4">
                 Once you delete your account, there is no going back. This will permanently delete all your data including employees, statuses, and settings.
               </p>
