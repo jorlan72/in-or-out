@@ -115,9 +115,10 @@ const Index = () => {
       ) || [];
 
       // Step 2 & 3: Apply statuses for employees that need processing
+      // IMPORTANT: Apply scheduled statuses FIRST so they take priority over recurring
       if (employeesToProcess.length > 0) {
-        await applyRecurringStatuses(employeesToProcess.map(e => e.id), today);
         await applyScheduledStatuses(employeesToProcess.map(e => e.id), today);
+        await applyRecurringStatuses(employeesToProcess.map(e => e.id), today);
       }
 
       // Fetch updated employee data
