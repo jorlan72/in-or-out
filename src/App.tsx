@@ -36,8 +36,7 @@ const App = () => (
             </TooltipProvider>
           </DailyMessageVisibilityProvider>
         </AdminModeProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

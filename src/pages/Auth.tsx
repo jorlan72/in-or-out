@@ -121,9 +121,6 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="absolute top-4 right-4">
-        <ThemeToggle />
-      </div>
       
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
