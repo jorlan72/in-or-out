@@ -20,7 +20,7 @@ export const Footer = ({ onLogout }: FooterProps) => {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Created by J. Lanesskog - 2025
+            Bitregn - 2026
           </p>
         </div>
       </div>
