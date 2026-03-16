@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
-import { ThemeToggle } from '@/components/ThemeToggle';
+
 import { z } from 'zod';
 
 const signUpSchema = z.object({
