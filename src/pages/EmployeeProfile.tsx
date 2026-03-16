@@ -125,7 +125,7 @@ const EmployeeProfile = () => {
 
   const debouncedUpdate = useCallback(
     (() => {
-      let timeoutId: NodeJS.Timeout;
+      let timeoutId: ReturnType<typeof setTimeout>;
       return (field: 'name' | 'phone' | 'email', value: string) => {
         clearTimeout(timeoutId);
         timeoutId = setTimeout(async () => {
